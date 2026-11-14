@@ -5,8 +5,6 @@ import zipfile
 
 import psycopg
 
-ZIP_FILENAME = "KboOpenData_0540_2026_11_10_Full.zip"
-
 # Use "localhost" when running from your terminal,
 # or "pgdatabase" when running inside a Docker Compose service.
 DB_CONFIG = {
@@ -171,5 +169,5 @@ def load_kbo_to_postgres(zip_path: Path) -> None:
 
 
 if __name__ == "__main__":
-    archive_path = Path(__file__).resolve().parent / ZIP_FILENAME
+    archive_path = Path(__file__).resolve().parent / "KboOpenData_0540_2026_11_10_Full.zip"
     load_kbo_to_postgres(archive_path)
