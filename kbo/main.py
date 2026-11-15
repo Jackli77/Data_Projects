@@ -2,7 +2,7 @@ import argparse
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-from extract import ArchiveType, VALID_ARCHIVE_TYPES, download_zip, get_url
+from extract import ArchiveType, VALID_ARCHIVE_TYPES, archive_filename, download_zip
 from load import load_kbo_to_postgres
 
 
@@ -29,7 +29,7 @@ def run_pipeline(
     skip_download: bool = False,
 ) -> None:
     """Downloads (if needed) and loads a single KBO archive into PostgreSQL."""
-    filename = get_url(target_date, archive_type=archive_type).rsplit("/", 1)[-1]
+    filename = archive_filename(target_date, archive_type=archive_type)
     zip_path = data_dir / filename
 
     print(f"=== KBO Pipeline | {target_date:%Y-%m-%d} | {archive_type} ===")

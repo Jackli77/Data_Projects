@@ -35,115 +35,105 @@ KBO_TABLES: list[tuple[str, str]] = [
     ("code", "kbo.code"),
 ]
 
-DDL_STATEMENTS: list[str] = [
-    "CREATE SCHEMA IF NOT EXISTS kbo;",
-    """
-    DROP TABLE IF EXISTS
-        kbo.enterprise,
-        kbo.establishment,
-        kbo.denomination,
-        kbo.address,
-        kbo.contact,
-        kbo.activity,
-        kbo.branch,
-        kbo.meta,
-        kbo.code
-    CASCADE;
-    """,
-    """
-    CREATE TABLE kbo.enterprise (
-        enterprise_number VARCHAR(12) PRIMARY KEY,
-        status VARCHAR(10),
-        juridical_situation VARCHAR(10),
-        type_of_enterprise VARCHAR(10),
-        juridical_form VARCHAR(10),
-        juridical_form_cac VARCHAR(10),
-        start_date DATE
-    );
-    """,
-    """
-    CREATE TABLE kbo.establishment (
-        establishment_number VARCHAR(13) PRIMARY KEY,
-        start_date DATE,
-        enterprise_number VARCHAR(12)
-    );
-    """,
-    """
-    CREATE TABLE kbo.denomination (
-        entity_number VARCHAR(13),
-        language VARCHAR(5),
-        type_of_denomination VARCHAR(10),
-        denomination TEXT
-    );
-    """,
-    """
-    CREATE TABLE kbo.address (
-        entity_number VARCHAR(13),
-        type_of_address VARCHAR(10),
-        country_nl TEXT,
-        country_fr TEXT,
-        zipcode VARCHAR(20),
-        municipality_nl TEXT,
-        municipality_fr TEXT,
-        street_nl TEXT,
-        street_fr TEXT,
-        house_number VARCHAR(20),
-        box VARCHAR(20),
-        extra_address_info TEXT,
-        date_striking_off DATE
-    );
-    """,
-    """
-    CREATE TABLE kbo.contact (
-        entity_number VARCHAR(13),
-        entity_contact VARCHAR(10),
-        contact_type VARCHAR(20),
-        value TEXT
-    );
-    """,
-    """
-    CREATE TABLE kbo.activity (
-        entity_number VARCHAR(13),
-        activity_group VARCHAR(10),
-        nace_version VARCHAR(10),
-        nace_code VARCHAR(10),
-        classification VARCHAR(10)
-    );
-    """,
-    """
-    CREATE TABLE kbo.branch (
-        id VARCHAR(13) PRIMARY KEY,
-        start_date DATE,
-        enterprise_number VARCHAR(12)
-    );
-    """,
-    """
-    CREATE TABLE kbo.meta (
-        variable VARCHAR(50) PRIMARY KEY,
-        value TEXT
-    );
-    """,
-    """
-    CREATE TABLE kbo.code (
-        category VARCHAR(50),
-        code VARCHAR(20),
-        language VARCHAR(5),
-        description TEXT,
-        PRIMARY KEY (category, code, language)
-    );
-    """,
-]
+DDL_STATEMENTS = """
+CREATE SCHEMA IF NOT EXISTS kbo;
 
-INDEX_STATEMENTS: list[str] = [
-    "CREATE INDEX idx_establishment_ent ON kbo.establishment (enterprise_number);",
-    "CREATE INDEX idx_denomination_ent ON kbo.denomination (entity_number);",
-    "CREATE INDEX idx_address_ent ON kbo.address (entity_number);",
-    "CREATE INDEX idx_address_zip ON kbo.address (zipcode);",
-    "CREATE INDEX idx_contact_ent ON kbo.contact (entity_number);",
-    "CREATE INDEX idx_activity_ent ON kbo.activity (entity_number);",
-    "CREATE INDEX idx_activity_nace ON kbo.activity (nace_version, nace_code);",
-    "CREATE INDEX idx_branch_ent ON kbo.branch (enterprise_number);",
-]
+DROP TABLE IF EXISTS
+    kbo.enterprise,
+    kbo.establishment,
+    kbo.denomination,
+    kbo.address,
+    kbo.contact,
+    kbo.activity,
+    kbo.branch,
+    kbo.meta,
+    kbo.code
+CASCADE;
+
+CREATE TABLE kbo.enterprise (
+    enterprise_number VARCHAR(12) PRIMARY KEY,
+    status VARCHAR(10),
+    juridical_situation VARCHAR(10),
+    type_of_enterprise VARCHAR(10),
+    juridical_form VARCHAR(10),
+    juridical_form_cac VARCHAR(10),
+    start_date DATE
+);
+
+CREATE TABLE kbo.establishment (
+    establishment_number VARCHAR(13) PRIMARY KEY,
+    start_date DATE,
+    enterprise_number VARCHAR(12)
+);
+
+CREATE TABLE kbo.denomination (
+    entity_number VARCHAR(13),
+    language VARCHAR(5),
+    type_of_denomination VARCHAR(10),
+    denomination TEXT
+);
+
+CREATE TABLE kbo.address (
+    entity_number VARCHAR(13),
+    type_of_address VARCHAR(10),
+    country_nl TEXT,
+    country_fr TEXT,
+    zipcode VARCHAR(20),
+    municipality_nl TEXT,
+    municipality_fr TEXT,
+    street_nl TEXT,
+    street_fr TEXT,
+    house_number VARCHAR(20),
+    box VARCHAR(20),
+    extra_address_info TEXT,
+    date_striking_off DATE
+);
+
+CREATE TABLE kbo.contact (
+    entity_number VARCHAR(13),
+    entity_contact VARCHAR(10),
+    contact_type VARCHAR(20),
+    value TEXT
+);
+
+CREATE TABLE kbo.activity (
+    entity_number VARCHAR(13),
+    activity_group VARCHAR(10),
+    nace_version VARCHAR(10),
+    nace_code VARCHAR(10),
+    classification VARCHAR(10)
+);
+
+CREATE TABLE kbo.branch (
+    id VARCHAR(13) PRIMARY KEY,
+    start_date DATE,
+    enterprise_number VARCHAR(12)
+);
+
+CREATE TABLE kbo.meta (
+    variable VARCHAR(50) PRIMARY KEY,
+    value TEXT
+);
+
+CREATE TABLE kbo.code (
+    category VARCHAR(50),
+    code VARCHAR(20),
+    language VARCHAR(5),
+    description TEXT,
+    PRIMARY KEY (category, code, language)
+);
+"""
+
+INDEX_STATEMENTS = """
+CREATE INDEX idx_establishment_ent ON kbo.establishment (enterprise_number);
+CREATE INDEX idx_denomination_ent ON kbo.denomination (entity_number);
+CREATE INDEX idx_address_ent ON kbo.address (entity_number);
+CREATE INDEX idx_address_zip ON kbo.address (zipcode);
+CREATE INDEX idx_contact_ent ON kbo.contact (entity_number);
+CREATE INDEX idx_activity_ent ON kbo.activity (entity_number);
+CREATE INDEX idx_activity_nace ON kbo.activity (nace_version, nace_code);
+CREATE INDEX idx_branch_ent ON kbo.branch (enterprise_number);
+"""
 
 def _to_snake_case(col_name: str) -> str:
     """Converts KBO PascalCase CSV headers (e.g. JuridicalFormCAC, CountryNL) to snake_case."""
@@ -199,8 +189,7 @@ def _apply_deletes(
 
 def _load_full(cur: psycopg.Cursor, zf: zipfile.ZipFile) -> None:
     print("Creating schema and tables...")
-    for stmt in DDL_STATEMENTS:
-        cur.execute(stmt)
+    cur.execute(DDL_STATEMENTS)
 
     for prefix, table_name in [*KBO_TABLES, ("meta", "kbo.meta")]:
         t0 = time.perf_counter()
@@ -213,8 +202,7 @@ def _load_full(cur: psycopg.Cursor, zf: zipfile.ZipFile) -> None:
 
     print("Building indexes and updating statistics...")
     t0 = time.perf_counter()
-    for stmt in INDEX_STATEMENTS:
-        cur.execute(stmt)
+    cur.execute(INDEX_STATEMENTS)
     for _, table_name in [*KBO_TABLES, ("meta", "kbo.meta")]:
         cur.execute(f"ANALYZE {table_name};")
     print(f"Indexes and stats ready in {time.perf_counter() - t0:.2f}s")

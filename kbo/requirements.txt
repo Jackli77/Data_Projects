@@ -2,3 +2,5 @@ pandas
 requests
 pyarrow
 psycopg
+python-dotenv
+pytest
