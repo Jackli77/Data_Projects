@@ -1,0 +1,6 @@
+pandas
+requests
+pyarrow
+psycopg[binary]
+python-dotenv
+pytest

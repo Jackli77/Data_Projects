@@ -11,7 +11,14 @@ import re
 import psycopg
 from dotenv import load_dotenv
 
-from extract import ArchiveType, VALID_ARCHIVE_TYPES, _validate_archive_type, archive_filename
+# Allow running as `python kbo/load.py` from the project root.
+if __package__ is None or __package__ == "":
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from kbo.extract import ArchiveType, VALID_ARCHIVE_TYPES, _validate_archive_type, archive_filename
 
 load_dotenv(override=True)
 

@@ -2,8 +2,15 @@ import argparse
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-from extract import ArchiveType, VALID_ARCHIVE_TYPES, archive_filename, download_zip
-from load import load_kbo_to_postgres
+# Allow running as `python kbo/main.py` from the project root.
+if __package__ is None or __package__ == "":
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from kbo.extract import ArchiveType, VALID_ARCHIVE_TYPES, archive_filename, download_zip
+from kbo.load import load_kbo_to_postgres
 
 
 def parse_date(value: str) -> date:
