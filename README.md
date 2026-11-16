@@ -126,6 +126,7 @@ No test contacts the KBO portal: a fake portal stands in for it.
 | `tests/test_archives.py` | Archive names, reading the portal listing, finding cached archives | nothing |
 | `tests/test_download.py` | All-or-nothing downloads, what gets downloaded for a date, credentials | nothing |
 | `tests/test_cli.py` | The `kbo` command: dates, ranges, cached archives, invalid input | nothing |
+| `tests/test_transformation.py` | The transform step: column names, each cleaning rule, duplicate removal | nothing |
 | `tests/test_load_rules.py` | Update ordering rule, archive name vs. metadata, table columns matching the CSV headers | nothing |
 | `tests/test_load_db.py` | Full load, Update deltas, refused updates and rollback, recovery after a partial failure, run history | PostgreSQL |
 
@@ -148,6 +149,8 @@ only Postgres and pgAdmin.
 
 ## Expected behavior
 
+* Every data CSV passes through the transform step (`kbo/transformation.py`) on its way into the
+  database; see [Transformations](#transformations).
 * `Full` archives empty and refill all `kbo.*` tables and rebuild their indexes. The tables are
   truncated, not dropped, so views and other objects built on them survive a Full load.
 * `Update` archives apply `_delete.csv` / `_insert.csv` deltas, replace `kbo.code`, and refresh `kbo.meta`.
@@ -162,6 +165,32 @@ only Postgres and pgAdmin.
 
 Because tables are no longer dropped, a change to the table definitions in `kbo/load.py` is not
 applied to an existing database by a Full load; drop the `kbo` tables by hand first.
+
+## Transformations
+
+`kbo/transformation.py` is the transform step between extract and load. Each data CSV is parsed
+and cleaned in Python, row by row, while it streams from the ZIP into PostgreSQL:
+
+| Rule | Applies to |
+|---|---|
+| Header names become snake_case column names | every file |
+| Empty text becomes `NULL` | every column of every data table |
+| Placeholder zipcodes such as `****` become `NULL` | `address.zipcode` |
+| Whitespace is trimmed and runs of it collapsed to one space | free-text columns: address fields, `denomination.denomination`, `contact.value`, `code.description` |
+| Lowercased | `contact.value` for `EMAIL` and `WEB` contacts |
+| Rows identical in every column are dropped | tables without a primary key: `denomination`, `address`, `contact`, `activity` |
+
+Key columns (enterprise, establishment and entity numbers) are never changed, so the
+`*_delete.csv` files of later updates still match. Phone and fax numbers are only trimmed.
+`meta.csv` and the delete files are loaded as delivered. The raw values remain available in the
+ZIP archives under `./data`.
+
+Duplicates are detected within one entity's block of rows, which relies on KBO listing all rows
+of an entity together; rows are compared after cleaning. Cleaning in Python roughly doubles the
+Full load time compared with copying the files unchanged.
+
+The rules live in the tables at the top of `kbo/transformation.py` (`TEXT_COLUMNS`,
+`PLACEHOLDER_COLUMNS`, `LOWERCASE_CONTACT_TYPES`, `DEDUPLICATED_TABLES`).
 
 ## Logs and run history
 

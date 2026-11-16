@@ -41,3 +41,22 @@ def inspect_data(df):
         print("No numeric columns.")
     else:
         print(num_df.describe().T[["min", "50%", "mean", "max"]])
+
+if __name__ == "__main__":
+    import argparse
+    import pandas as pd
+
+    parser = argparse.ArgumentParser(description="Inspect CSV data in a ZIP file.")
+    parser.add_argument("zip_path", help="Path to the ZIP file containing CSV files.")
+    args = parser.parse_args()
+
+    csv_preview(args.zip_path)
+
+    # Example of loading a CSV from the ZIP and inspecting it
+    with zipfile.ZipFile(args.zip_path) as zf:
+        for name in zf.namelist():
+            if name.endswith('.csv'):
+                with zf.open(name) as f:
+                    df = pd.read_csv(f)
+                    print(f"\n=== Inspecting {name} ===")
+                    inspect_data(df)

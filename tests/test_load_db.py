@@ -161,6 +161,55 @@ def test_csv_columns_are_matched_by_name_not_position(data_dir, db):
     ]
 
 
+# --- Cleaning on the way in ------------------------------------------------------------------
+
+
+def test_loaded_rows_are_cleaned(data_dir, db):
+    write_update(
+        data_dir,
+        inserts={
+            "enterprise": [{"EnterpriseNumber": ENT_C}],
+            "address": [{"EntityNumber": ENT_C, "StreetNL": " Rue   de la Loi ", "Zipcode": "****"}],
+            "contact": [
+                {"EntityNumber": ENT_C, "ContactType": "EMAIL", "Value": "Info@C.Example"},
+                {"EntityNumber": ENT_C, "ContactType": "EMAIL", "Value": "info@c.example "},
+                {"EntityNumber": ENT_C, "ContactType": "TEL", "Value": "02 123"},
+            ],
+        },
+    )
+
+    load(data_dir, NEXT_DATE)
+
+    # tidied street, placeholder zipcode and untouched empty fields all NULL
+    assert db.query(
+        f"SELECT street_nl, zipcode, box FROM kbo.address WHERE entity_number = '{ENT_C}'"
+    ) == [("Rue de la Loi", None, None)]
+    # the two spellings of one e-mail address collapse into a single row
+    assert db.column(
+        f"SELECT value FROM kbo.contact WHERE entity_number = '{ENT_C}' ORDER BY 1"
+    ) == ["02 123", "info@c.example"]
+
+
+def test_no_empty_strings_are_stored(data_dir, db):
+    empties = db.column(
+        "SELECT count(*) FROM kbo.address WHERE '' IN (box, zipcode, street_fr, extra_address_info)"
+    )
+
+    assert empties == [0]
+    assert db.column("SELECT count(*) FROM kbo.address WHERE box IS NULL") == [2]
+
+
+def test_cleaned_rows_are_still_removed_by_a_later_update(data_dir, db):
+    # 541 stores a lowercased e-mail; 542 deletes ENT_B's contacts by entity number.
+    email = {"EntityNumber": ENT_B, "ContactType": "EMAIL", "Value": "INFO@B.Example"}
+    write_update(data_dir, FULL_NUMBER + 1, inserts={"contact": [email]})
+    write_update(data_dir, FULL_NUMBER + 2, deletes={"contact": [ENT_B]})
+
+    load(data_dir, NEXT_DATE)
+
+    assert db.column("SELECT entity_number FROM kbo.contact") == [ENT_A]
+
+
 # --- Updates that must be refused, leaving the database as it was -------------------------
 
 

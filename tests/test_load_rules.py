@@ -8,10 +8,11 @@ from kbo.load import (
     DDL_STATEMENTS,
     ArchiveMismatchError,
     UpdateSequenceError,
-    _to_snake_case,
     check_archive_identity,
     check_extract_order,
 )
+
+from kbo.transformation import clean_header
 
 from .builders import HEADERS
 
@@ -78,4 +79,4 @@ def _table_columns() -> dict[str, list[str]]:
 def test_table_columns_match_the_csv_headers(table):
     # COPY maps CSV columns to table columns by name, so every header of the real
     # archive layout must have a column of the same (snake_cased) name.
-    assert _table_columns()[table] == [_to_snake_case(h) for h in HEADERS[table]]
+    assert _table_columns()[table] == clean_header(HEADERS[table])

@@ -20,6 +20,7 @@ from kbo.extract import (
     parse_archive_filename,
 )
 from kbo.runlog import logger as log, run_id_var
+from kbo.transformation import CsvCleaner, clean_header
 
 load_dotenv()
 
@@ -139,11 +140,6 @@ CREATE INDEX idx_branch_ent ON kbo.branch (enterprise_number);
 INDEX_NAMES = re.findall(r"CREATE INDEX (\w+)", INDEX_STATEMENTS)
 
 
-def _to_snake_case(col_name: str) -> str:
-    """Converts KBO PascalCase CSV headers (e.g. JuridicalFormCAC, CountryNL) to snake_case."""
-    return re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", col_name.strip()).lower()
-
-
 def _find_member(zf: zipfile.ZipFile, filename: str) -> str | None:
     for name in zf.namelist():
         if name == filename or name.endswith(f"/{filename}"):
@@ -151,21 +147,11 @@ def _find_member(zf: zipfile.ZipFile, filename: str) -> str | None:
     return None
 
 
-_IDENTIFIER_RE = re.compile(r"[a-z_][a-z0-9_]*")
-
-
 def _read_columns(zf: zipfile.ZipFile, member_name: str) -> list[str]:
-    """Returns the CSV's header as snake_case column names ([] if the file is empty)."""
+    """Returns the CSV's header as database column names ([] if the file is empty)."""
     with zf.open(member_name) as raw_stream:
         text_stream = io.TextIOWrapper(raw_stream, encoding="utf-8-sig")
-        raw_header = next(csv.reader(text_stream), None) or []
-
-    columns = [_to_snake_case(col) for col in raw_header]
-    for col in columns:
-        # The names are interpolated into SQL, so accept plain identifiers only.
-        if not _IDENTIFIER_RE.fullmatch(col):
-            raise ValueError(f"Unexpected column name {col!r} in {member_name}.")
-    return columns
+        return clean_header(next(csv.reader(text_stream), None) or [])
 
 
 def _copy_csv(
@@ -174,12 +160,35 @@ def _copy_csv(
     member_name: str,
     target_table: str,
     columns: list[str] | None = None,
+    clean_as: str | None = None,
 ) -> int:
-    """Streams a CSV inside the ZIP archive directly into Postgres via COPY.
+    """Streams a CSV inside the ZIP archive into Postgres via COPY.
+
+    With `clean_as` (a table name known to kbo.transformation) the rows pass through
+    the transform step on the way; without it the file is copied byte for byte, which
+    is what the key-only *_delete.csv files and meta.csv need.
 
     Columns are matched by header name, not position, so a reordered CSV still loads
     correctly and an unknown column fails loudly instead of landing in the wrong field.
     """
+    if clean_as:
+        with zf.open(member_name) as raw_stream:
+            # newline="" keeps line breaks inside quoted fields intact for the CSV parser
+            lines = io.TextIOWrapper(raw_stream, encoding="utf-8-sig", newline="")
+            cleaner = CsvCleaner(clean_as, lines)
+            if not cleaner.columns:
+                return 0
+            copy_sql = (
+                f"COPY {target_table} ({', '.join(cleaner.columns)}) "
+                "FROM STDIN WITH (FORMAT csv, HEADER false, DELIMITER ',')"
+            )
+            with cur.copy(copy_sql) as copy:
+                for chunk in cleaner.chunks():
+                    copy.write(chunk)
+        if cleaner.duplicates:
+            log.info("Dropped %s duplicate rows from %s", f"{cleaner.duplicates:,}", member_name)
+        return cur.rowcount
+
     if columns is None:
         columns = _read_columns(zf, member_name)
     if not columns:
@@ -354,7 +363,9 @@ def _load_full(cur: psycopg.Cursor, zf: zipfile.ZipFile, stats: LoadStats) -> No
         if not member:
             raise KeyError(f"Expected '{prefix}.csv' in Full archive.")
 
-        inserted = _copy_csv(cur, zf, member, table_name)
+        # meta.csv is loaded as delivered; every data table goes through the transform step
+        clean_as = None if prefix == "meta" else prefix
+        inserted = _copy_csv(cur, zf, member, table_name, clean_as=clean_as)
         stats.rows_inserted += inserted
         log.info("Loaded  %-18s (%s rows) in %.2fs", table_name, f"{inserted:,}", time.perf_counter() - t0)
 
@@ -379,7 +390,9 @@ def _load_update(cur: psycopg.Cursor, zf: zipfile.ZipFile, stats: LoadStats) -> 
 
         if del_member or ins_member:
             deleted = _apply_deletes(cur, zf, del_member, table_name) if del_member else 0
-            inserted = _copy_csv(cur, zf, ins_member, table_name) if ins_member else 0
+            inserted = (
+                _copy_csv(cur, zf, ins_member, table_name, clean_as=prefix) if ins_member else 0
+            )
             stats.rows_deleted += deleted
             stats.rows_inserted += inserted
             log.info(
@@ -391,7 +404,7 @@ def _load_update(cur: psycopg.Cursor, zf: zipfile.ZipFile, stats: LoadStats) -> 
             # DELETE rather than TRUNCATE: it is MVCC-safe for concurrent readers.
             # A snapshot swap is not a delta, so it is left out of the row totals.
             cur.execute(f"DELETE FROM {table_name};")
-            inserted = _copy_csv(cur, zf, full_member, table_name)
+            inserted = _copy_csv(cur, zf, full_member, table_name, clean_as=prefix)
             log.info(
                 "Replaced %-17s (%s rows) in %.2fs",
                 table_name, f"{inserted:,}", time.perf_counter() - t0,
