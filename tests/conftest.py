@@ -56,6 +56,8 @@ class FakePortal:
         self._files: dict[str, _Response] = {}
         self.downloaded: list[str] = []
         self.timeouts: list = []
+        self.logins = 0
+        self.listing_requests = 0
 
     def publish(self, *archives: Archive, body=None, content_length="actual", drop_after=None):
         """Offers archives for download. `body`, `content_length` and `drop_after`
@@ -69,6 +71,7 @@ class FakePortal:
     def get(self, url, timeout=None, **kwargs):
         self.timeouts.append(timeout)
         if url == LISTING_URL:
+            self.listing_requests += 1
             links = "".join(f'<a href="files/{name}">{name}</a>' for name in self._files)
             return _Response(text=f"<html><table>{links}</table></html>")
         name = url.rsplit("/", 1)[-1]
@@ -80,7 +83,12 @@ class FakePortal:
 def portal(monkeypatch, zip_bytes) -> FakePortal:
     """The KBO portal, with nothing published yet. Replaces the real login."""
     fake = FakePortal(zip_bytes)
-    monkeypatch.setattr(extract, "create_session_from_env", lambda: fake)
+
+    def login():
+        fake.logins += 1
+        return fake
+
+    monkeypatch.setattr(extract, "create_session_from_env", login)
     return fake
 
 
@@ -92,7 +100,10 @@ class Database:
         self._conn = conn
 
     def reset(self) -> None:
-        self._conn.execute("DROP SCHEMA IF EXISTS kbo CASCADE")
+        self._conn.execute("DROP SCHEMA IF EXISTS kbo, reporting CASCADE")
+
+    def execute(self, sql: str) -> None:
+        self._conn.execute(sql)
 
     def query(self, sql: str) -> list[tuple]:
         return self._conn.execute(sql).fetchall()
@@ -102,10 +113,19 @@ class Database:
         return [row[0] for row in self.query(sql)]
 
     def counts(self) -> dict[str, int]:
+        """Row count of every data table (the run history is not data)."""
         tables = self.column(
-            "SELECT tablename FROM pg_tables WHERE schemaname = 'kbo' ORDER BY 1"
+            "SELECT tablename FROM pg_tables WHERE schemaname = 'kbo' "
+            "AND tablename <> 'load_history' ORDER BY 1"
         )
         return {t: self.column(f"SELECT count(*) FROM kbo.{t}")[0] for t in tables}
+
+    def history(self) -> list[tuple]:
+        """(archive extract, status, extract before, extract after) per run, oldest first."""
+        return self.query(
+            "SELECT extract_number, status, extract_before, extract_after "
+            "FROM kbo.load_history ORDER BY started_at, finished_at"
+        )
 
     @property
     def extract_number(self) -> int:

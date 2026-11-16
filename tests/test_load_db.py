@@ -5,9 +5,27 @@ from datetime import date
 import psycopg
 import pytest
 
-from kbo.load import UpdateSequenceError, load_kbo_to_postgres
+from kbo.load import (
+    DB_CONFIG,
+    ArchiveMismatchError,
+    UpdateSequenceError,
+    find_orphans,
+    load_archive,
+    load_kbo_to_postgres,
+)
 
-from .builders import ENT_A, ENT_B, ENT_C, FULL_DATE, FULL_NUMBER, NEXT_DATE, to_csv, write_full, write_update
+from .builders import (
+    ENT_A,
+    ENT_B,
+    ENT_C,
+    FULL_DATE,
+    FULL_NUMBER,
+    NEXT_DATE,
+    meta_csv,
+    to_csv,
+    write_full,
+    write_update,
+)
 
 pytestmark = pytest.mark.db
 
@@ -55,6 +73,15 @@ def test_full_load_replaces_whatever_was_there(data_dir, db):
 
     assert db.column("SELECT enterprise_number FROM kbo.enterprise ORDER BY 1") == [ENT_A, ENT_B]
     assert db.extract_number == FULL_NUMBER
+
+
+def test_full_load_keeps_views_built_on_the_tables(data_dir, db):
+    db.execute("CREATE SCHEMA reporting")
+    db.execute("CREATE VIEW reporting.active AS SELECT * FROM kbo.enterprise WHERE status = 'AC'")
+
+    load(data_dir, FULL_DATE, "Full")
+
+    assert db.column("SELECT count(*) FROM reporting.active") == [2]
 
 
 # --- Update ----------------------------------------------------------------------------
@@ -166,14 +193,26 @@ def test_update_with_an_unknown_column_is_refused(data_dir, unchanged):
         load(data_dir, NEXT_DATE)
 
 
-def test_applying_an_update_twice_is_refused(data_dir, db):
+def test_archive_whose_metadata_contradicts_its_name_is_refused(data_dir, unchanged):
+    # Named extract 541, but the contents say 542.
+    write_update(
+        data_dir,
+        deletes={"enterprise": [ENT_A]},
+        files={"meta.csv": meta_csv("update", FULL_NUMBER + 2)},
+    )
+
+    with pytest.raises(ArchiveMismatchError, match="meta.csv says extract 542"):
+        load(data_dir, NEXT_DATE)
+
+
+def test_loading_the_same_archive_twice_is_refused(data_dir, db):
     # contact has no primary key, so nothing but the sequence check stops a duplicate.
     email = {"EntityNumber": ENT_B, "ContactType": "EMAIL", "Value": "info@b.example"}
-    write_update(data_dir, inserts={"contact": [email]})
-    load(data_dir, NEXT_DATE)
+    archive = write_update(data_dir, inserts={"contact": [email]})
+    load_archive(archive)
 
     with pytest.raises(UpdateSequenceError, match="already applied"):
-        load(data_dir, NEXT_DATE)
+        load_archive(archive)
 
     assert db.column("SELECT count(*) FROM kbo.contact") == [2]
 
@@ -183,3 +222,84 @@ def test_update_before_any_full_load_is_refused(db, tmp_path):
 
     with pytest.raises(UpdateSequenceError, match="run a Full load"):
         load(tmp_path, NEXT_DATE)
+
+
+# --- Repeating and recovering ------------------------------------------------------------
+
+
+def test_repeating_a_finished_date_changes_nothing(data_dir, db):
+    email = {"EntityNumber": ENT_B, "ContactType": "EMAIL", "Value": "info@b.example"}
+    write_update(data_dir, inserts={"contact": [email]})
+    load(data_dir, NEXT_DATE)
+
+    load(data_dir, NEXT_DATE)  # skipped: already applied
+
+    assert db.column("SELECT count(*) FROM kbo.contact") == [2]
+    assert db.extract_number == FULL_NUMBER + 1
+
+
+def test_rerun_after_a_partial_failure_applies_only_what_is_missing(data_dir, db):
+    # Two updates on one date: 541 is fine, 542 is broken.
+    email = {"EntityNumber": ENT_B, "ContactType": "EMAIL", "Value": "info@b.example"}
+    surprise = to_csv(["EntityNumber", "Surprise"], [{"EntityNumber": ENT_A, "Surprise": "x"}])
+    write_update(data_dir, FULL_NUMBER + 1, inserts={"contact": [email]})
+    write_update(data_dir, FULL_NUMBER + 2, files={"contact_insert.csv": surprise})
+
+    with pytest.raises(psycopg.errors.UndefinedColumn):
+        load(data_dir, NEXT_DATE)
+    assert db.extract_number == FULL_NUMBER + 1  # 541 went in, 542 did not
+
+    # The archive is replaced by a good one and the same command is run again.
+    write_update(data_dir, FULL_NUMBER + 2, inserts={"enterprise": [{"EnterpriseNumber": ENT_C}]})
+    load(data_dir, NEXT_DATE)
+
+    assert db.extract_number == FULL_NUMBER + 2
+    assert db.column("SELECT count(*) FROM kbo.contact") == [2]  # 541 was not applied twice
+    assert ENT_C in db.column("SELECT enterprise_number FROM kbo.enterprise")
+
+
+# --- Run history and integrity -------------------------------------------------------------
+
+
+def test_every_run_is_recorded_in_the_history(data_dir, db):
+    email = {"EntityNumber": ENT_B, "ContactType": "EMAIL", "Value": "info@b.example"}
+    write_update(data_dir, FULL_NUMBER + 1, deletes={"contact": [ENT_A]}, inserts={"contact": [email]})
+    write_update(data_dir, FULL_NUMBER + 3, day=date(2026, 11, 13))  # skips 542
+
+    load(data_dir, NEXT_DATE)
+    with pytest.raises(UpdateSequenceError):
+        load(data_dir, date(2026, 11, 13))
+
+    assert db.history() == [
+        (540, "success", None, 540),
+        (541, "success", 540, 541),
+        (543, "failed", 541, None),
+    ]
+    assert db.query(
+        "SELECT rows_inserted, rows_deleted, error FROM kbo.load_history WHERE extract_number = 541"
+    ) == [(1, 1, None)]
+    error, tb = db.query(
+        "SELECT error, traceback FROM kbo.load_history WHERE status = 'failed'"
+    )[0]
+    assert error.startswith("UpdateSequenceError: Update 543 is out of sequence")
+    assert "Traceback" in tb
+
+
+def test_history_survives_a_full_load(data_dir, db):
+    load(data_dir, FULL_DATE, "Full")
+
+    assert [status for _, status, _, _ in db.history()] == ["success", "success"]
+
+
+def test_orphaned_establishments_are_counted(data_dir, db):
+    write_update(
+        data_dir,
+        inserts={"establishment": [{"EstablishmentNumber": "2.999.999.999", "EnterpriseNumber": "0999.999.999"}]},
+    )
+    load(data_dir, NEXT_DATE)
+
+    with psycopg.connect(**DB_CONFIG) as conn:
+        assert find_orphans(conn) == {
+            "establishments without an enterprise": 1,
+            "branches without an enterprise": 0,
+        }

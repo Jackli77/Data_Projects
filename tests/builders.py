@@ -80,7 +80,7 @@ def to_csv(columns: list[str], rows: Rows) -> str:
     return buf.getvalue()
 
 
-def _meta(extract_type: str, number: int) -> str:
+def meta_csv(extract_type: str, number: int) -> str:
     rows = {"ExtractType": extract_type, "ExtractNumber": str(number), "Version": "1.0.0"}
     return to_csv(HEADERS["meta"], [{"Variable": k, "Value": v} for k, v in rows.items()])
 
@@ -95,7 +95,7 @@ def _write(path: Path, files: dict[str, str]) -> Path:
 def write_full(data_dir: Path, number: int = FULL_NUMBER, day: date = FULL_DATE) -> Path:
     """Writes a Full archive containing SEED."""
     files = {f"{table}.csv": to_csv(HEADERS[table], rows) for table, rows in SEED.items()}
-    files["meta.csv"] = _meta("full", number)
+    files["meta.csv"] = meta_csv("full", number)
     return _write(Path(data_dir) / Archive(number, day, "Full").filename, files)
 
 
@@ -124,6 +124,6 @@ def write_update(
         members[f"{table}_delete.csv"] = to_csv([key], [{key: k} for k in deletes.get(table, [])])
         members[f"{table}_insert.csv"] = to_csv(HEADERS[table], inserts.get(table, []))
     members["code.csv"] = to_csv(HEADERS["code"], SEED["code"] if code is None else code)
-    members["meta.csv"] = _meta("update", number)
+    members["meta.csv"] = meta_csv("update", number)
     members.update(files or {})
     return _write(Path(data_dir) / Archive(number, day, "Update").filename, members)

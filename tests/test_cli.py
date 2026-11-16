@@ -57,6 +57,8 @@ def test_date_range_processes_each_day_in_order(portal, loads, tmp_path):
     kbo(tmp_path, "--date", "2026-11-11", "--end-date", "2026-11-13")
 
     assert loads == [(d, "Update") for d in days]
+    # one login and one listing request for the whole range, not one per day
+    assert (portal.logins, portal.listing_requests) == (1, 1)
 
 
 def test_nothing_is_loaded_when_the_download_fails(portal, loads, tmp_path):

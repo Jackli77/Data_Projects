@@ -2,8 +2,12 @@ import argparse
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-from kbo.extract import ArchiveType, VALID_ARCHIVE_TYPES, fetch_archives
+import requests
+
+from kbo import extract
+from kbo.extract import Archive, ArchiveType, VALID_ARCHIVE_TYPES, fetch_archives
 from kbo.load import load_kbo_to_postgres
+from kbo.runlog import logger as log, setup_logging
 
 
 def parse_date(value: str) -> date:
@@ -25,11 +29,18 @@ def run_pipeline(
     target_date: date,
     archive_type: ArchiveType = "Update",
     data_dir: Path = Path("data"),
+    session: requests.Session | None = None,
+    listing: list[Archive] | None = None,
 ) -> None:
-    """Downloads (if needed) and loads the KBO archive(s) of one date into PostgreSQL."""
-    print(f"=== KBO Pipeline | {target_date:%Y-%m-%d} | {archive_type} ===")
+    """Downloads (if needed) and loads the KBO archive(s) of one date into PostgreSQL.
 
-    fetch_archives(target_date, archive_type=archive_type, data_dir=data_dir)
+    `session` and `listing` let a date range share one portal login and listing.
+    """
+    log.info("=== KBO Pipeline | %s | %s ===", f"{target_date:%Y-%m-%d}", archive_type)
+
+    fetch_archives(
+        target_date, archive_type=archive_type, data_dir=data_dir, session=session, listing=listing
+    )
 
     load_kbo_to_postgres(
         datevar=target_date,
@@ -84,11 +95,19 @@ def main(argv: list[str] | None = None) -> None:
     else:
         dates = [args.date]
 
+    setup_logging()
+
+    # One login and one listing request for the whole run, however many dates it covers.
+    session = extract.create_session_from_env()
+    listing = extract.list_remote_archives(session)
+
     for current_date in dates:
         run_pipeline(
             target_date=current_date,
             archive_type=args.archive_type,
             data_dir=args.data_dir,
+            session=session,
+            listing=listing,
         )
 
 

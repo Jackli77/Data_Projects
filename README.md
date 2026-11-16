@@ -126,8 +126,8 @@ No test contacts the KBO portal: a fake portal stands in for it.
 | `tests/test_archives.py` | Archive names, reading the portal listing, finding cached archives | nothing |
 | `tests/test_download.py` | All-or-nothing downloads, what gets downloaded for a date, credentials | nothing |
 | `tests/test_cli.py` | The `kbo` command: dates, ranges, cached archives, invalid input | nothing |
-| `tests/test_load_rules.py` | Update ordering rule, table columns matching the CSV headers | nothing |
-| `tests/test_load_db.py` | Full load, Update deltas, `kbo.code` refresh, refused updates and rollback | PostgreSQL |
+| `tests/test_load_rules.py` | Update ordering rule, archive name vs. metadata, table columns matching the CSV headers | nothing |
+| `tests/test_load_db.py` | Full load, Update deltas, refused updates and rollback, recovery after a partial failure, run history | PostgreSQL |
 
 `tests/builders.py` writes the small archives the tests load, and `tests/conftest.py` holds
 the fake portal and the throwaway database.
@@ -148,11 +148,40 @@ only Postgres and pgAdmin.
 
 ## Expected behavior
 
-* `Full` archives recreate all `kbo.*` tables from scratch and build indexes.
+* `Full` archives empty and refill all `kbo.*` tables and rebuild their indexes. The tables are
+  truncated, not dropped, so views and other objects built on them survive a Full load.
 * `Update` archives apply `_delete.csv` / `_insert.csv` deltas, replace `kbo.code`, and refresh `kbo.meta`.
-* An `Update` is refused unless its extract number is exactly the database's current one + 1, so updates cannot be skipped, repeated, or applied out of order.
-* Downloaded ZIPs are cached under `./data` (or `--data-dir`) so re-runs skip the download.
-* Each run prints per-table timing (`-X / +Y rows in Zs`) and a total elapsed time.
+* An `Update` is refused unless its extract number is exactly the database's current one + 1, so
+  updates cannot be skipped or applied out of order. Updates the database already has are skipped,
+  so a run that failed part-way can simply be repeated.
+* An archive is refused if its `meta.csv` (extract number, Full/Update) contradicts its file name.
+* Each archive loads in one transaction: a failed load leaves the database as it was.
+* Downloaded ZIPs are cached under `./data` (or `--data-dir`) so re-runs skip the download. Every
+  download is CRC-checked before it is accepted.
+* A date range logs in to the portal once, not once per day.
+
+Because tables are no longer dropped, a change to the table definitions in `kbo/load.py` is not
+applied to an existing database by a Full load; drop the `kbo` tables by hand first.
+
+## Logs and run history
+
+The pipeline logs to stderr. Every line carries the ID of the load it belongs to:
+
+```
+2026-11-16 15:55:20 INFO    [2b243043] Updated kbo.contact        (-124 / +250 rows) in 0.01s
+```
+
+Each load attempt, successful or failed, is also recorded in `kbo.load_history`:
+
+```sql
+SELECT started_at, archive, status, extract_before, extract_after,
+       rows_inserted, rows_deleted, error
+FROM kbo.load_history
+ORDER BY started_at DESC;
+```
+
+Failed runs keep the error message and the full traceback. After each load an integrity check
+logs a warning if any establishment or branch points at an enterprise that does not exist.
 
 ## Troubleshooting
 
@@ -161,5 +190,6 @@ only Postgres and pgAdmin.
 | `PermissionError: Login failed` | Wrong KBO credentials | Update `KBO_USERNAME`/`KBO_PASSWORD` in `.env` |
 | `FileNotFoundError: ... no Update archive for <date>` | The portal does not list that date and no ZIP for it is cached | The error names the date range the portal offers; pick a date in it |
 | `UpdateSequenceError` | The update is not the next extract the database expects | Apply the missing updates first (the error names the next one), or run a `Full` load |
+| `ArchiveMismatchError` | An archive's `meta.csv` contradicts its file name or the requested type | The file was renamed or is not what it claims; delete it from the data directory and run again to download it fresh |
 | `psycopg.OperationalError` | PostgreSQL not running or wrong connection info | Start Postgres via `docker compose up -d` and check `POSTGRES_*` vars |
 | `ModuleNotFoundError: dotenv` | Dependencies not installed | `pip install -r requirements.txt` |

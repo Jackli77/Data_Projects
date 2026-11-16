@@ -7,6 +7,8 @@ from typing import Literal, NamedTuple
 import requests
 from dotenv import load_dotenv
 
+from kbo.runlog import logger as log
+
 # Real environment variables win over .env, so Docker/CI can inject their own values.
 load_dotenv()
 
@@ -111,14 +113,18 @@ def find_local_archives(
     return sorted(a for a in found if a is not None)
 
 
-def is_valid_zip(path: Path | str) -> bool:
+def is_valid_zip(path: Path | str, deep: bool = False) -> bool:
     """True if `path` is a complete ZIP archive.
 
-    The ZIP directory sits at the end of the file, so a truncated download fails here.
+    The ZIP directory sits at the end of the file, so a truncated download fails the
+    quick check. `deep` also decompresses every member and verifies its CRC, which
+    catches corruption in the middle of the file (a few seconds for a Full archive).
     """
     try:
         with zipfile.ZipFile(path) as zf:
-            return bool(zf.namelist())
+            if not zf.namelist():
+                return False
+            return zf.testzip() is None if deep else True
     except (OSError, zipfile.BadZipFile):
         return False
 
@@ -173,7 +179,7 @@ def download_archive(
                     f"got {written:,} of {int(expected):,} bytes."
                 )
 
-        if not is_valid_zip(part_path):
+        if not is_valid_zip(part_path, deep=True):
             raise IOError(f"Downloaded file is not a valid ZIP archive: {file_path.name}")
 
         os.replace(part_path, file_path)
@@ -188,16 +194,23 @@ def fetch_archives(
     datevar: date,
     archive_type: ArchiveType = "Update",
     data_dir: Path | str = "data",
+    session: requests.Session | None = None,
+    listing: list[Archive] | None = None,
 ) -> list[Path]:
     """Makes sure every archive the portal lists for `datevar` is present in `data_dir`.
+
+    Pass `session` and `listing` to reuse one login and one listing request across
+    several dates; without them a new login is made.
 
     Returns the local paths in extract-number order. Archives that are already cached
     and valid are not downloaded again. A cached archive the
     portal no longer lists (it keeps roughly a month) is used as is.
     """
     _validate_archive_type(archive_type)
-    session = create_session_from_env()
-    listing = list_remote_archives(session)
+    if session is None:
+        session = create_session_from_env()
+    if listing is None:
+        listing = list_remote_archives(session)
 
     remote = [a for a in listing if a.date == datevar and a.archive_type == archive_type]
     targets = sorted({*remote, *find_local_archives(data_dir, datevar, archive_type)})
@@ -214,14 +227,14 @@ def fetch_archives(
         path = Path(data_dir) / archive.filename
         if archive in remote and not is_valid_zip(path):
             if path.exists():
-                print(f"Local archive is corrupt or incomplete, downloading again: {path}")
-            print(f"Downloading {archive.filename}...")
+                log.warning("Local archive is corrupt or incomplete, downloading again: %s", path)
+            log.info("Downloading %s...", archive.filename)
             download_archive(session, archive, data_dir)
         elif not is_valid_zip(path):
             raise IOError(
                 f"Local archive is corrupt and no longer offered by the portal: {path}"
             )
         else:
-            print(f"Archive already exists locally, skipping download: {path}")
+            log.info("Archive already exists locally, skipping download: %s", path)
         paths.append(path)
     return paths

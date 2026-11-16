@@ -52,6 +52,25 @@ def test_failed_download_leaves_no_file(portal, tmp_path, broken_transfer, error
     assert files_in(tmp_path) == []
 
 
+def test_download_with_corrupt_contents_is_rejected(portal, tmp_path, zip_bytes):
+    # The ZIP directory is intact, so only a CRC check of the contents notices this.
+    damaged = zip_bytes.replace(b"ExtractNumber", b"ExtractNumbe!", 1)
+    assert damaged != zip_bytes and is_valid_zip_bytes(tmp_path, damaged)
+    portal.publish(U523, body=damaged)
+
+    with pytest.raises(IOError, match="not a valid ZIP"):
+        download_archive(portal, U523, tmp_path)
+
+    assert files_in(tmp_path) == []
+
+
+def is_valid_zip_bytes(tmp_path, body: bytes) -> bool:
+    """Whether the quick (non-CRC) check accepts these bytes."""
+    probe = tmp_path.parent / "probe.zip"
+    probe.write_bytes(body)
+    return is_valid_zip(probe)
+
+
 def test_failed_redownload_keeps_the_existing_archive(portal, tmp_path, zip_bytes):
     existing = tmp_path / U523.filename
     existing.write_bytes(zip_bytes)
