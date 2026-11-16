@@ -1,3 +1,7 @@
+# Pinned: Compose otherwise names the stack after the folder, so renaming the folder
+# would silently start a new stack with empty data volumes.
+name: data_pipeline
+
 services:
   pgdatabase:
     image: postgres:18
@@ -19,6 +23,21 @@ services:
       - pgadmin_data:/var/lib/pgadmin
     ports:
       - "8085:80"
+
+  # One-off ETL runs: `docker compose run --rm kbo --date 2026-11-14`.
+  # The profile keeps it out of a plain `docker compose up`.
+  kbo:
+    build: .
+    profiles: ["etl"]
+    env_file: .env
+    environment:
+      # Inside the Compose network Postgres is reached by service name, not localhost.
+      POSTGRES_HOST: pgdatabase
+      POSTGRES_PORT: "5432"
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - pgdatabase
 
 volumes:
   kbo_postgres_data:

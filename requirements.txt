@@ -1,6 +1,3 @@
-pandas
-requests
-pyarrow
-psycopg[binary]
-python-dotenv
-pytest
+# Dependencies are declared once, in setup.py. This installs the package in
+# editable mode together with the test tools.
+-e .[test]

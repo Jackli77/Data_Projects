@@ -1,5 +1,4 @@
 import zipfile
-import pandas as pd
 
 def csv_preview(zip_path):
     with zipfile.ZipFile(zip_path) as zf:
@@ -14,6 +13,8 @@ def csv_preview(zip_path):
                         print(repr(line.decode('utf-8', errors='replace')))
 
 def inspect_data(df):
+    import pandas as pd  # optional dependency: pip install -e .[debug]
+
     if df.empty:
         print("DataFrame is empty.")
         return

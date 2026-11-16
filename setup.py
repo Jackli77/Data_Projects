@@ -10,14 +10,14 @@ setup(
     packages=find_packages(exclude=("tests", "tests.*")),
     python_requires=">=3.10",
     install_requires=[
-        "pandas",
-        "requests",
-        "pyarrow",
-        "psycopg[binary]",
-        "python-dotenv",
+        "requests>=2.32,<3",
+        "psycopg[binary]>=3.2,<4",
+        "python-dotenv>=1.0,<2",
     ],
     extras_require={
-        "test": ["pytest"],
+        "test": ["pytest>=8"],
+        # only needed by kbo.helper.inspect_data
+        "debug": ["pandas>=2"],
     },
     entry_points={
         "console_scripts": [

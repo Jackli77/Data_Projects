@@ -10,6 +10,7 @@ dist/
 downloads/
 eggs/
 .eggs/
+*.egg-info/
 parts/
 lib/
 lib64/
@@ -40,4 +41,5 @@ Thumbs.db
 .coverage
 htmlcov/
 data/*.zip
+data/*.part
 .env

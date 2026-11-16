@@ -14,13 +14,15 @@ Downloads Belgian KBO (Crossroads Bank for Enterprises) Open Data archives and l
 pip install -r requirements.txt
 ```
 
+This installs the package in editable mode (dependencies are declared in `setup.py`) together with the test tools, and provides the `kbo` command. `python -m kbo` is equivalent.
+
 ## 2. Configure credentials
 
-Create a `.env` in the project root:
+Copy `.env.example` to `.env` in the project root and fill in your KBO login:
 
 ```ini
-USERNAME=your_kbo_username
-PASSWORD=your_kbo_password
+KBO_USERNAME=your_kbo_username
+KBO_PASSWORD=your_kbo_password
 
 # Optional PostgreSQL overrides (defaults shown)
 POSTGRES_HOST=localhost
@@ -30,7 +32,7 @@ POSTGRES_USER=root
 POSTGRES_PASSWORD=root
 ```
 
-The example `.env` already contains `USERNAME` and `PASSWORD` for KBO authentication.
+Variables already set in the real environment take precedence over `.env`.
 
 ## 3. Start PostgreSQL (Docker)
 
@@ -44,47 +46,47 @@ This starts:
 
 ## 4. Run the pipeline
 
-Run from the project root so the `kbo` package is importable.
+Archive file names are looked up in the portal's file listing, so a normal run logs in to the portal even when the archive is already cached. The portal keeps roughly one month of archives.
 
 ### Single archive (default: today, type: Update)
 
 ```bash
-python kbo/main.py
+kbo
 ```
 
 ### Specific date and type
 
 ```bash
 # Full archive for a specific date
-python kbo/main.py --date 2026-11-10 --type Full
+kbo --date 2026-11-10 --type Full
 
 # Update archive for a specific date
-python kbo/main.py --date 2026-11-14 --type Update
+kbo --date 2026-11-14 --type Update
 ```
 
 ### Date range (Update only)
 
 ```bash
-python kbo/main.py --date 2026-11-11 --end-date 2026-11-14 --type Update
+kbo --date 2026-11-11 --end-date 2026-11-14 --type Update
 ```
 
 ### Skip / force download
 
 ```bash
 # Re-download even if the ZIP exists locally
-python kbo/main.py --date 2026-11-14 --type Update --force-download
+kbo --date 2026-11-14 --type Update --force-download
 
 # Load from local disk only; fail if ZIP missing
-python kbo/main.py --date 2026-11-14 --type Update --skip-download
+kbo --date 2026-11-14 --type Update --skip-download
 
 # Custom data directory
-python kbo/main.py --date 2026-11-14 --type Update --data-dir ./my_downloads
+kbo --date 2026-11-14 --type Update --data-dir ./my_downloads
 ```
 
 ### CLI reference
 
 ```
-usage: main.py [-h] [-t {Full,Update}] [-d YYYY-MM-DD]
+usage: kbo [-h]      [-t {Full,Update}] [-d YYYY-MM-DD]
                [--end-date YYYY-MM-DD] [--data-dir DIR]
                [--force-download] [--skip-download]
 
@@ -101,14 +103,7 @@ optional arguments:
   --skip-download       Only load from local disk; fail if the ZIP is missing.
 ```
 
-## 5. Run modules directly
-
-### Load an existing archive into Postgres
-
-```bash
-python kbo/load.py
-```
-Prompts for archive type and date, then loads from `./downloads`.
+## 5. Debugging helpers
 
 ### Preview CSV contents inside a ZIP
 
@@ -118,41 +113,51 @@ python -c "from kbo.helper import csv_preview; csv_preview('data/KboOpenData_054
 
 ## 6. Run tests
 
-Tests live in the `tests/` directory and cover pure functions (no network, no database required):
-
 ```bash
-# Install test dependencies
-pip install -r requirements.txt
+# Everything; the database tests are skipped (and listed as skipped) without PostgreSQL
+python -m pytest
 
-# Run all tests
-python -m pytest tests/ -v
+# Fast tests only: no network, no database
+python -m pytest -m "not db"
 
-# Run a specific test file
-python -m pytest tests/test_extract.py -v
+# Database tests only
+python -m pytest -m db
 ```
 
-| Test file | Covers |
-|---|---|
-| `tests/test_extract.py` | `archive_filename`, `get_url`, `_validate_archive_type`, `_find_member` |
-| `tests/test_main.py` | `parse_date`, `date_range` |
-| `tests/test_load.py` | `_to_snake_case` |
-| `tests/test_helper.py` | `inspect_data` |
+The database tests create one throwaway `kbo_test_<random>` database on the server from
+`.env` / `POSTGRES_*` and drop it afterwards; the real `kbo` database is never touched.
+No test contacts the KBO portal: a fake portal stands in for it.
+
+| Test file | Covers | Needs |
+|---|---|---|
+| `tests/test_archives.py` | Archive names, reading the portal listing, finding cached archives | nothing |
+| `tests/test_download.py` | All-or-nothing downloads, what gets downloaded for a date, credentials | nothing |
+| `tests/test_cli.py` | The `kbo` command: dates, ranges, `--skip-download`, `--force-download`, invalid input | nothing |
+| `tests/test_load_rules.py` | Update ordering rule, table columns matching the CSV headers | nothing |
+| `tests/test_load_db.py` | Full load, Update deltas, `kbo.code` refresh, refused updates and rollback | PostgreSQL |
+
+`tests/builders.py` writes the small archives the tests load, and `tests/conftest.py` holds
+the fake portal and the throwaway database.
 
 ## 7. Docker
 
-Build and run the image (entrypoint is `python kbo/main.py`):
+The image contains only the `kbo` package; archives live in the mounted `./data` folder and
+credentials come from `.env`. Compose runs it on the same network as Postgres, which the
+container reaches as `pgdatabase` (not `localhost`):
 
 ```bash
-docker build -t kbo .
-docker run --env-file .env kbo
+docker compose build kbo
+docker compose run --rm kbo --date 2026-11-14 --type Update
 ```
 
-Note: the Dockerfile copies `KboOpenData_0540_2026_11_10_Full.zip` into the image; for live downloads you'll need network access to the KBO portal.
+The `kbo` service sits behind the `etl` profile, so a plain `docker compose up -d` still starts
+only Postgres and pgAdmin.
 
 ## Expected behavior
 
 * `Full` archives recreate all `kbo.*` tables from scratch and build indexes.
-* `Update` archives apply `_delete.csv` / `_insert.csv` deltas and refresh `kbo.meta`.
+* `Update` archives apply `_delete.csv` / `_insert.csv` deltas, replace `kbo.code`, and refresh `kbo.meta`.
+* An `Update` is refused unless its extract number is exactly the database's current one + 1, so updates cannot be skipped, repeated, or applied out of order.
 * Downloaded ZIPs are cached under `./data` (or `--data-dir`) so re-runs skip the download unless `--force-download` is set.
 * Each run prints per-table timing (`-X / +Y rows in Zs`) and a total elapsed time.
 
@@ -160,7 +165,8 @@ Note: the Dockerfile copies `KboOpenData_0540_2026_11_10_Full.zip` into the imag
 
 | Problem | Likely cause | Fix |
 |---|---|---|
-| `PermissionError: Login failed` | Wrong KBO credentials | Update `USERNAME`/`PASSWORD` in `.env` |
-| `FileNotFoundError: ZIP archive not found` | Missing local ZIP and download skipped/failed | Run without `--skip-download`, or check network/credentials |
+| `PermissionError: Login failed` | Wrong KBO credentials | Update `KBO_USERNAME`/`KBO_PASSWORD` in `.env` |
+| `FileNotFoundError: ... no Update archive for <date>` | No local ZIP with `--skip-download`, or the portal does not list that date | Run without `--skip-download`; the error names the date range the portal offers |
+| `UpdateSequenceError` | The update is not the next extract the database expects | Apply the missing updates first (the error names the next one), or run a `Full` load |
 | `psycopg.OperationalError` | PostgreSQL not running or wrong connection info | Start Postgres via `docker-compose up -d` and check `POSTGRES_*` vars |
 | `ModuleNotFoundError: dotenv` | Dependencies not installed | `pip install -r requirements.txt` |

@@ -2,14 +2,7 @@ import argparse
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-# Allow running as `python kbo/main.py` from the project root.
-if __package__ is None or __package__ == "":
-    import sys
-    from pathlib import Path
-
-    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from kbo.extract import ArchiveType, VALID_ARCHIVE_TYPES, archive_filename, download_zip
+from kbo.extract import ArchiveType, VALID_ARCHIVE_TYPES, fetch_archives, find_local_archives
 from kbo.load import load_kbo_to_postgres
 
 
@@ -35,22 +28,20 @@ def run_pipeline(
     force_download: bool = False,
     skip_download: bool = False,
 ) -> None:
-    """Downloads (if needed) and loads a single KBO archive into PostgreSQL."""
-    filename = archive_filename(target_date, archive_type=archive_type)
-    zip_path = data_dir / filename
-
+    """Downloads (if needed) and loads the KBO archive(s) of one date into PostgreSQL."""
     print(f"=== KBO Pipeline | {target_date:%Y-%m-%d} | {archive_type} ===")
 
     if skip_download:
-        if not zip_path.exists():
-            raise FileNotFoundError(f"--skip-download set, but archive not found: {zip_path}")
-        print(f"Using existing local archive: {zip_path}")
-    elif force_download or not zip_path.exists():
-        print(f"Downloading {filename}...")
-        zip_path = download_zip(target_date, output_dir=data_dir, archive_type=archive_type)
-        print(f"Saved to {zip_path}")
+        local = find_local_archives(data_dir, target_date, archive_type)
+        if not local:
+            raise FileNotFoundError(
+                f"--skip-download set, but no {archive_type} archive for "
+                f"{target_date:%Y-%m-%d} found in: {data_dir}"
+            )
+        for archive in local:
+            print(f"Using existing local archive: {data_dir / archive.filename}")
     else:
-        print(f"Archive already exists locally, skipping download: {zip_path}")
+        fetch_archives(target_date, archive_type=archive_type, data_dir=data_dir, force=force_download)
 
     load_kbo_to_postgres(
         datevar=target_date,
@@ -61,6 +52,7 @@ def run_pipeline(
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
+        prog="kbo",
         description="Run the KBO Open Data ETL pipeline (Download + Load to PostgreSQL)."
     )
     parser.add_argument(
@@ -103,9 +95,9 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     parser = build_parser()
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     if args.end_date:
         if args.archive_type != "Update":
