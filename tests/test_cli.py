@@ -68,29 +68,14 @@ def test_nothing_is_loaded_when_the_download_fails(portal, loads, tmp_path):
     assert loads == []
 
 
-def test_skip_download_loads_the_cached_archive_without_the_portal(loads, tmp_path, zip_bytes, monkeypatch):
-    monkeypatch.setattr(main, "fetch_archives", lambda *a, **k: pytest.fail("portal contacted"))
-    (tmp_path / U541.filename).write_bytes(zip_bytes)
-
-    kbo(tmp_path, "--date", "2026-11-11", "--skip-download")
-
-    assert loads == [(NOV_11, "Update")]
-
-
-def test_skip_download_fails_when_nothing_is_cached(loads, tmp_path):
-    with pytest.raises(FileNotFoundError, match="--skip-download"):
-        kbo(tmp_path, "--date", "2026-11-11", "--skip-download")
-
-    assert loads == []
-
-
-def test_force_download_replaces_the_cached_archive(portal, loads, tmp_path, zip_bytes):
+def test_cached_archive_is_loaded_without_downloading_it_again(portal, loads, tmp_path, zip_bytes):
     portal.publish(U541)
     (tmp_path / U541.filename).write_bytes(zip_bytes)
 
-    kbo(tmp_path, "--date", "2026-11-11", "--force-download")
+    kbo(tmp_path, "--date", "2026-11-11")
 
-    assert portal.downloaded == [U541.filename]
+    assert portal.downloaded == []
+    assert loads == [(NOV_11, "Update")]
 
 
 @pytest.mark.parametrize(

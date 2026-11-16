@@ -105,15 +105,6 @@ def test_fetch_downloads_only_what_is_missing_or_corrupt(portal, tmp_path, zip_b
     assert is_valid_zip(tmp_path / U524.filename)
 
 
-def test_fetch_with_force_downloads_cached_archives_again(portal, tmp_path, zip_bytes):
-    portal.publish(U523, U524)
-    (tmp_path / U523.filename).write_bytes(zip_bytes)
-
-    fetch_archives(OCT_25, data_dir=tmp_path, force=True)
-
-    assert portal.downloaded == [U523.filename, U524.filename]
-
-
 def test_fetch_uses_a_cached_archive_the_portal_no_longer_offers(portal, tmp_path, zip_bytes):
     portal.publish(U523)
     old = Archive(400, date(2026, 6, 23), "Update")

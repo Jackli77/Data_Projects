@@ -2,7 +2,7 @@ import argparse
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-from kbo.extract import ArchiveType, VALID_ARCHIVE_TYPES, fetch_archives, find_local_archives
+from kbo.extract import ArchiveType, VALID_ARCHIVE_TYPES, fetch_archives
 from kbo.load import load_kbo_to_postgres
 
 
@@ -25,23 +25,11 @@ def run_pipeline(
     target_date: date,
     archive_type: ArchiveType = "Update",
     data_dir: Path = Path("data"),
-    force_download: bool = False,
-    skip_download: bool = False,
 ) -> None:
     """Downloads (if needed) and loads the KBO archive(s) of one date into PostgreSQL."""
     print(f"=== KBO Pipeline | {target_date:%Y-%m-%d} | {archive_type} ===")
 
-    if skip_download:
-        local = find_local_archives(data_dir, target_date, archive_type)
-        if not local:
-            raise FileNotFoundError(
-                f"--skip-download set, but no {archive_type} archive for "
-                f"{target_date:%Y-%m-%d} found in: {data_dir}"
-            )
-        for archive in local:
-            print(f"Using existing local archive: {data_dir / archive.filename}")
-    else:
-        fetch_archives(target_date, archive_type=archive_type, data_dir=data_dir, force=force_download)
+    fetch_archives(target_date, archive_type=archive_type, data_dir=data_dir)
 
     load_kbo_to_postgres(
         datevar=target_date,
@@ -82,16 +70,6 @@ def build_parser() -> argparse.ArgumentParser:
         default=Path("data"),
         help="Directory where ZIP archives are stored (default: ./data).",
     )
-    parser.add_argument(
-        "--force-download",
-        action="store_true",
-        help="Re-download the ZIP archive even if it already exists locally.",
-    )
-    parser.add_argument(
-        "--skip-download",
-        action="store_true",
-        help="Only load from local disk; fail if the ZIP is missing.",
-    )
     return parser
 
 
@@ -111,8 +89,6 @@ def main(argv: list[str] | None = None) -> None:
             target_date=current_date,
             archive_type=args.archive_type,
             data_dir=args.data_dir,
-            force_download=args.force_download,
-            skip_download=args.skip_download,
         )
 
 

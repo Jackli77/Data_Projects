@@ -70,25 +70,20 @@ kbo --date 2026-11-14 --type Update
 kbo --date 2026-11-11 --end-date 2026-11-14 --type Update
 ```
 
-### Skip / force download
+### Custom data directory
 
 ```bash
-# Re-download even if the ZIP exists locally
-kbo --date 2026-11-14 --type Update --force-download
-
-# Load from local disk only; fail if ZIP missing
-kbo --date 2026-11-14 --type Update --skip-download
-
-# Custom data directory
 kbo --date 2026-11-14 --type Update --data-dir ./my_downloads
 ```
+
+An archive that is already in the data directory and intact is not downloaded again. To force a
+fresh download, delete the ZIP first.
 
 ### CLI reference
 
 ```
-usage: kbo [-h]      [-t {Full,Update}] [-d YYYY-MM-DD]
-               [--end-date YYYY-MM-DD] [--data-dir DIR]
-               [--force-download] [--skip-download]
+usage: kbo [-h] [-t {Full,Update}] [-d YYYY-MM-DD]
+           [--end-date YYYY-MM-DD] [--data-dir DIR]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -99,8 +94,6 @@ optional arguments:
   --end-date YYYY-MM-DD
                         Optional end date to process a contiguous range of Update archives.
   --data-dir DIR        Directory where ZIP archives are stored (default: ./data).
-  --force-download      Re-download the ZIP archive even if it already exists locally.
-  --skip-download       Only load from local disk; fail if the ZIP is missing.
 ```
 
 ## 5. Debugging helpers
@@ -132,7 +125,7 @@ No test contacts the KBO portal: a fake portal stands in for it.
 |---|---|---|
 | `tests/test_archives.py` | Archive names, reading the portal listing, finding cached archives | nothing |
 | `tests/test_download.py` | All-or-nothing downloads, what gets downloaded for a date, credentials | nothing |
-| `tests/test_cli.py` | The `kbo` command: dates, ranges, `--skip-download`, `--force-download`, invalid input | nothing |
+| `tests/test_cli.py` | The `kbo` command: dates, ranges, cached archives, invalid input | nothing |
 | `tests/test_load_rules.py` | Update ordering rule, table columns matching the CSV headers | nothing |
 | `tests/test_load_db.py` | Full load, Update deltas, `kbo.code` refresh, refused updates and rollback | PostgreSQL |
 
@@ -158,7 +151,7 @@ only Postgres and pgAdmin.
 * `Full` archives recreate all `kbo.*` tables from scratch and build indexes.
 * `Update` archives apply `_delete.csv` / `_insert.csv` deltas, replace `kbo.code`, and refresh `kbo.meta`.
 * An `Update` is refused unless its extract number is exactly the database's current one + 1, so updates cannot be skipped, repeated, or applied out of order.
-* Downloaded ZIPs are cached under `./data` (or `--data-dir`) so re-runs skip the download unless `--force-download` is set.
+* Downloaded ZIPs are cached under `./data` (or `--data-dir`) so re-runs skip the download.
 * Each run prints per-table timing (`-X / +Y rows in Zs`) and a total elapsed time.
 
 ## Troubleshooting
@@ -166,7 +159,7 @@ only Postgres and pgAdmin.
 | Problem | Likely cause | Fix |
 |---|---|---|
 | `PermissionError: Login failed` | Wrong KBO credentials | Update `KBO_USERNAME`/`KBO_PASSWORD` in `.env` |
-| `FileNotFoundError: ... no Update archive for <date>` | No local ZIP with `--skip-download`, or the portal does not list that date | Run without `--skip-download`; the error names the date range the portal offers |
+| `FileNotFoundError: ... no Update archive for <date>` | The portal does not list that date and no ZIP for it is cached | The error names the date range the portal offers; pick a date in it |
 | `UpdateSequenceError` | The update is not the next extract the database expects | Apply the missing updates first (the error names the next one), or run a `Full` load |
 | `psycopg.OperationalError` | PostgreSQL not running or wrong connection info | Start Postgres via `docker-compose up -d` and check `POSTGRES_*` vars |
 | `ModuleNotFoundError: dotenv` | Dependencies not installed | `pip install -r requirements.txt` |

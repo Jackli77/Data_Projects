@@ -188,12 +188,11 @@ def fetch_archives(
     datevar: date,
     archive_type: ArchiveType = "Update",
     data_dir: Path | str = "data",
-    force: bool = False,
 ) -> list[Path]:
     """Makes sure every archive the portal lists for `datevar` is present in `data_dir`.
 
     Returns the local paths in extract-number order. Archives that are already cached
-    and valid are not downloaded again unless `force` is set. A cached archive the
+    and valid are not downloaded again. A cached archive the
     portal no longer lists (it keeps roughly a month) is used as is.
     """
     _validate_archive_type(archive_type)
@@ -213,8 +212,8 @@ def fetch_archives(
     paths = []
     for archive in targets:
         path = Path(data_dir) / archive.filename
-        if archive in remote and (force or not is_valid_zip(path)):
-            if path.exists() and not force:
+        if archive in remote and not is_valid_zip(path):
+            if path.exists():
                 print(f"Local archive is corrupt or incomplete, downloading again: {path}")
             print(f"Downloading {archive.filename}...")
             download_archive(session, archive, data_dir)
