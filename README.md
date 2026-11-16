@@ -14,7 +14,7 @@ Downloads Belgian KBO (Crossroads Bank for Enterprises) Open Data archives and l
 pip install -r requirements.txt
 ```
 
-This installs the package in editable mode (dependencies are declared in `setup.py`) together with the test tools, and provides the `kbo` command. `python -m kbo` is equivalent.
+This installs the package in editable mode (dependencies are declared in `pyproject.toml`) together with the test tools, and provides the `kbo` command. `python -m kbo` is equivalent.
 
 ## 2. Configure credentials
 
@@ -37,7 +37,7 @@ Variables already set in the real environment take precedence over `.env`.
 ## 3. Start PostgreSQL (Docker)
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 This starts:
@@ -161,5 +161,5 @@ only Postgres and pgAdmin.
 | `PermissionError: Login failed` | Wrong KBO credentials | Update `KBO_USERNAME`/`KBO_PASSWORD` in `.env` |
 | `FileNotFoundError: ... no Update archive for <date>` | The portal does not list that date and no ZIP for it is cached | The error names the date range the portal offers; pick a date in it |
 | `UpdateSequenceError` | The update is not the next extract the database expects | Apply the missing updates first (the error names the next one), or run a `Full` load |
-| `psycopg.OperationalError` | PostgreSQL not running or wrong connection info | Start Postgres via `docker-compose up -d` and check `POSTGRES_*` vars |
+| `psycopg.OperationalError` | PostgreSQL not running or wrong connection info | Start Postgres via `docker compose up -d` and check `POSTGRES_*` vars |
 | `ModuleNotFoundError: dotenv` | Dependencies not installed | `pip install -r requirements.txt` |

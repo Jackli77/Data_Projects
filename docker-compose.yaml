@@ -2,20 +2,29 @@
 # would silently start a new stack with empty data volumes.
 name: data_pipeline
 
+# ${VAR:-default} values are read from .env (the same file the pipeline uses), so the
+# database and its clients cannot drift apart.
 services:
   pgdatabase:
     image: postgres:18
     environment:
-      POSTGRES_USER: "root"
-      POSTGRES_PASSWORD: "root"
-      POSTGRES_DB: "kbo"
+      POSTGRES_USER: "${POSTGRES_USER:-root}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-root}"
+      POSTGRES_DB: "${POSTGRES_DB:-kbo}"
     volumes:
       - kbo_postgres_data:/var/lib/postgresql
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      # $$ defers expansion to the container, which has these variables set.
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
   pgadmin:
-    image: dpage/pgadmin4
+    image: dpage/pgadmin4:9.19
     environment:
       PGADMIN_DEFAULT_EMAIL: "admin@admin.com"
       PGADMIN_DEFAULT_PASSWORD: "root"
@@ -37,7 +46,9 @@ services:
     volumes:
       - ./data:/app/data
     depends_on:
-      - pgdatabase
+      pgdatabase:
+        # Wait until Postgres accepts connections, not merely until its container exists.
+        condition: service_healthy
 
 volumes:
   kbo_postgres_data:
