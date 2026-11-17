@@ -1,0 +1,73 @@
+table 'Warehouse Refreshes'
+
+	measure Refreshes = COUNTROWS ( 'Warehouse Refreshes' )
+		formatString: 0
+
+	measure 'Warehouse Extract' = VAR lastBatch = MAX ( 'Warehouse Refreshes'[Batch Id] ) RETURN CALCULATE ( MAX ( 'Warehouse Refreshes'[Source Extract Number] ), 'Warehouse Refreshes'[Batch Id] = lastBatch )
+		formatString: 0
+
+	measure 'Last Warehouse Refresh' = MAX ( 'Warehouse Refreshes'[Finished At] )
+		formatString: dd/mm/yyyy hh:nn
+
+	column 'Batch Id'
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Batch Id
+
+	column 'Source Extract Number'
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Source Extract Number
+
+	column 'Snapshot Date'
+		dataType: dateTime
+		formatString: dd/mm/yyyy
+		summarizeBy: none
+		sourceColumn: Snapshot Date
+
+	column 'Started At'
+		dataType: dateTime
+		formatString: dd/mm/yyyy hh:nn:ss
+		summarizeBy: none
+		sourceColumn: Started At
+
+	column 'Finished At'
+		dataType: dateTime
+		formatString: dd/mm/yyyy hh:nn:ss
+		summarizeBy: none
+		sourceColumn: Finished At
+
+	column 'Duration Seconds'
+		dataType: double
+		formatString: 0.0
+		summarizeBy: none
+		sourceColumn: Duration Seconds
+
+	column 'Enterprise Fact Rows'
+		dataType: int64
+		formatString: #,0
+		summarizeBy: none
+		sourceColumn: Enterprise Fact Rows
+
+	column 'Establishment Fact Rows'
+		dataType: int64
+		formatString: #,0
+		summarizeBy: none
+		sourceColumn: Establishment Fact Rows
+
+	column 'Enterprise Dimension Rows'
+		dataType: int64
+		formatString: #,0
+		summarizeBy: none
+		sourceColumn: Enterprise Dimension Rows
+
+	partition 'Warehouse Refreshes' = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database(Server, Database),
+				    Data = Source{[Schema = "powerbi", Item = "Warehouse Refreshes"]}[Data]
+				in
+				    Data

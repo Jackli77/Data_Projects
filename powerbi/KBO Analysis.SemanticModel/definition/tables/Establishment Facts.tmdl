@@ -1,0 +1,50 @@
+table 'Establishment Facts'
+
+	/// Number of establishment units. Filtered by Geography or Activity, this uses the establishment's own address and activity, not its enterprise's
+	measure Establishments = SUM ( 'Establishment Facts'[Establishment Count] )
+		formatString: #,0
+
+	column 'Establishment Number'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Establishment Number
+
+	column 'Enterprise Key'
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: Enterprise Key
+
+	column 'Date Key'
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: Date Key
+
+	column 'Geography Key'
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: Geography Key
+
+	column 'Activity Key'
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: Activity Key
+
+	column 'Establishment Count'
+		dataType: int64
+		formatString: #,0
+		isHidden
+		summarizeBy: none
+		sourceColumn: Establishment Count
+
+	partition 'Establishment Facts' = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database(Server, Database),
+				    Data = Source{[Schema = "powerbi", Item = "Establishment Facts"]}[Data]
+				in
+				    Data

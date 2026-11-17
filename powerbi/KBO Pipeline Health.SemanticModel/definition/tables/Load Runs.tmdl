@@ -1,0 +1,122 @@
+table 'Load Runs'
+
+	measure Runs = COUNTROWS ( 'Load Runs' )
+		formatString: 0
+
+	measure 'Successful Runs' = CALCULATE ( COUNTROWS ( 'Load Runs' ), 'Load Runs'[Status] = "Success" ) + 0
+		formatString: 0
+
+	measure 'Failed Runs' = CALCULATE ( COUNTROWS ( 'Load Runs' ), 'Load Runs'[Status] = "Failed" ) + 0
+		formatString: 0
+
+	measure 'Current Extract' = VAR lastRun = CALCULATE ( MAX ( 'Load Runs'[Run Order] ), 'Load Runs'[Status] = "Success" ) RETURN CALCULATE ( MAX ( 'Load Runs'[Extract After] ), 'Load Runs'[Run Order] = lastRun )
+		formatString: 0
+
+	measure 'Last Successful Load' = CALCULATE ( MAX ( 'Load Runs'[Finished At] ), 'Load Runs'[Status] = "Success" )
+		formatString: dd/mm/yyyy hh:nn
+
+	measure 'Rows Inserted (updates)' = CALCULATE ( SUM ( 'Load Runs'[Rows Inserted] ), 'Load Runs'[Archive Type] = "Update" )
+		formatString: #,0
+
+	measure 'Rows Deleted (updates)' = CALCULATE ( SUM ( 'Load Runs'[Rows Deleted] ), 'Load Runs'[Archive Type] = "Update" )
+		formatString: #,0
+
+	measure 'Update Duration (s)' = CALCULATE ( SUM ( 'Load Runs'[Duration Seconds] ), 'Load Runs'[Archive Type] = "Update" )
+		formatString: 0.0
+
+	measure 'Full Load Duration (s)' = CALCULATE ( MAX ( 'Load Runs'[Duration Seconds] ), 'Load Runs'[Archive Type] = "Full", 'Load Runs'[Status] = "Success" )
+		formatString: 0.0
+
+	column 'Run Id'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Run Id
+
+	column Archive
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Archive
+
+	column 'Archive Type'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Archive Type
+
+	column Status
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Status
+
+	column 'Extract Number'
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Extract Number
+
+	column 'Extract Before'
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Extract Before
+
+	column 'Extract After'
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Extract After
+
+	column 'Rows Inserted'
+		dataType: int64
+		formatString: #,0
+		summarizeBy: none
+		sourceColumn: Rows Inserted
+
+	column 'Rows Deleted'
+		dataType: int64
+		formatString: #,0
+		summarizeBy: none
+		sourceColumn: Rows Deleted
+
+	column 'Started At'
+		dataType: dateTime
+		formatString: dd/mm/yyyy hh:nn:ss
+		summarizeBy: none
+		sourceColumn: Started At
+
+	column 'Finished At'
+		dataType: dateTime
+		formatString: dd/mm/yyyy hh:nn:ss
+		summarizeBy: none
+		sourceColumn: Finished At
+
+	column 'Duration Seconds'
+		dataType: double
+		formatString: 0.0
+		summarizeBy: none
+		sourceColumn: Duration Seconds
+
+	column 'Run Order'
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Run Order
+
+	column Error
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Error
+
+	column Run
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Run
+		sortByColumn: 'Run Order'
+
+	partition 'Load Runs' = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database(Server, Database),
+				    Data = Source{[Schema = "powerbi", Item = "Load Runs"]}[Data]
+				in
+				    Data

@@ -1,0 +1,158 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.14.0/schema.json",
+  "name": "1f86aa151fa45de39d7e",
+  "position": {
+    "x": 20,
+    "y": 416,
+    "z": 2000,
+    "width": 1240,
+    "height": 296,
+    "tabOrder": 2000
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Warehouse Refreshes"
+                    }
+                  },
+                  "Property": "Batch Id"
+                }
+              },
+              "queryRef": "Warehouse Refreshes.Batch Id",
+              "nativeQueryRef": "Batch Id"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Warehouse Refreshes"
+                    }
+                  },
+                  "Property": "Source Extract Number"
+                }
+              },
+              "queryRef": "Warehouse Refreshes.Source Extract Number",
+              "nativeQueryRef": "Source Extract Number"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Warehouse Refreshes"
+                    }
+                  },
+                  "Property": "Snapshot Date"
+                }
+              },
+              "queryRef": "Warehouse Refreshes.Snapshot Date",
+              "nativeQueryRef": "Snapshot Date"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Warehouse Refreshes"
+                    }
+                  },
+                  "Property": "Started At"
+                }
+              },
+              "queryRef": "Warehouse Refreshes.Started At",
+              "nativeQueryRef": "Started At"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Warehouse Refreshes"
+                    }
+                  },
+                  "Property": "Finished At"
+                }
+              },
+              "queryRef": "Warehouse Refreshes.Finished At",
+              "nativeQueryRef": "Finished At"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Warehouse Refreshes"
+                    }
+                  },
+                  "Property": "Duration Seconds"
+                }
+              },
+              "queryRef": "Warehouse Refreshes.Duration Seconds",
+              "nativeQueryRef": "Duration Seconds"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Warehouse Refreshes"
+                    }
+                  },
+                  "Property": "Enterprise Fact Rows"
+                }
+              },
+              "queryRef": "Warehouse Refreshes.Enterprise Fact Rows",
+              "nativeQueryRef": "Enterprise Fact Rows"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Warehouse Refreshes"
+                    }
+                  },
+                  "Property": "Establishment Fact Rows"
+                }
+              },
+              "queryRef": "Warehouse Refreshes.Establishment Fact Rows",
+              "nativeQueryRef": "Establishment Fact Rows"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Warehouse refreshes'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

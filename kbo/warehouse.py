@@ -19,7 +19,8 @@ Design rules applied here:
 * Facts are a snapshot of the current extract: emptied and refilled at each refresh.
 * The whole refresh is one transaction, and each one is recorded in dwh.etl_batch.
 
-Run with the `kbo-warehouse` command after loading archives with `kbo`.
+Run with the `kbo-warehouse` command after loading archives with `kbo`; it also refreshes
+the views of the `powerbi` schema and the Power BI login (see kbo/powerbi.py).
 """
 
 import time
@@ -27,6 +28,7 @@ import time
 import psycopg
 from psycopg.types.json import Jsonb
 
+from kbo import powerbi
 from kbo.load import _connect, current_extract_number
 from kbo.runlog import logger as log, setup_logging
 
@@ -427,6 +429,8 @@ def refresh_warehouse(conn: psycopg.Connection) -> dict[str, int]:
             cur.execute(sql)
             log.info("%-28s %.1fs", description, time.perf_counter() - t0)
 
+        powerbi.create_views(cur)
+
         counts = {}
         for table in [*DIMENSIONS, *FACTS]:
             cur.execute(f"SELECT count(*) FROM dwh.{table}")
@@ -452,6 +456,7 @@ def main() -> None:
     setup_logging()
     with _connect() as conn:
         refresh_warehouse(conn)
+        powerbi.grant_reader_from_env(conn)
 
 
 if __name__ == "__main__":

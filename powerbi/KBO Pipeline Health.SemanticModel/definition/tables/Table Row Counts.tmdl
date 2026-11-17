@@ -1,0 +1,29 @@
+table 'Table Row Counts'
+
+	measure 'Table Rows' = SUM ( 'Table Row Counts'[Rows] )
+		formatString: #,0
+
+	column Layer
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Layer
+
+	column Table
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Table
+
+	column Rows
+		dataType: int64
+		formatString: #,0
+		summarizeBy: none
+		sourceColumn: Rows
+
+	partition 'Table Row Counts' = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database(Server, Database),
+				    Data = Source{[Schema = "powerbi", Item = "Table Row Counts"]}[Data]
+				in
+				    Data

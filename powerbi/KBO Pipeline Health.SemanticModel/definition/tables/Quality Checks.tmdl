@@ -1,0 +1,62 @@
+table 'Quality Checks'
+
+	measure Checks = COUNTROWS ( 'Quality Checks' )
+		formatString: 0
+
+	measure 'Checks Passed' = SUM ( 'Quality Checks'[Passed] ) + 0
+		formatString: 0
+
+	measure 'Checks Failing' = CALCULATE ( COUNTROWS ( 'Quality Checks' ), 'Quality Checks'[Status] = "Fail" ) + 0
+		formatString: 0
+
+	measure 'Check Summary' = IF ( [Checks] > 0, FORMAT ( [Checks Passed], "0" ) & " / " & FORMAT ( [Checks], "0" ) & " passed" )
+
+	measure 'Pipeline Status' = SWITCH ( TRUE (), NOT ( [Checks] > 0 ), BLANK (), [Checks Failing] > 0, "Failing", [Checks Passed] < [Checks], "Warning", "Healthy" )
+
+	column Order
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Order
+
+	column Category
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Category
+
+	column Check
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Check
+		sortByColumn: Order
+
+	column Severity
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Severity
+
+	column 'Failing Rows'
+		dataType: int64
+		formatString: #,0
+		summarizeBy: none
+		sourceColumn: Failing Rows
+
+	column Status
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Status
+
+	column Passed
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Passed
+
+	partition 'Quality Checks' = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database(Server, Database),
+				    Data = Source{[Schema = "powerbi", Item = "Quality Checks"]}[Data]
+				in
+				    Data

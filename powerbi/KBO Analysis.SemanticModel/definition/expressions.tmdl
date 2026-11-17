@@ -1,0 +1,4 @@
+/// PostgreSQL server (host:port). 127.0.0.1 rather than localhost: see docs/powerbi.md.
+expression Server = "127.0.0.1:5432" meta [IsParameterQuery = true, Type = "Text", IsParameterQueryRequired = true]
+
+expression Database = "kbo" meta [IsParameterQuery = true, Type = "Text", IsParameterQueryRequired = true]

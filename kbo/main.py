@@ -102,13 +102,18 @@ def main(argv: list[str] | None = None) -> None:
     listing = extract.list_remote_archives(session)
 
     for current_date in dates:
-        run_pipeline(
-            target_date=current_date,
-            archive_type=args.archive_type,
-            data_dir=args.data_dir,
-            session=session,
-            listing=listing,
-        )
+        try:
+            run_pipeline(
+                target_date=current_date,
+                archive_type=args.archive_type,
+                data_dir=args.data_dir,
+                session=session,
+                listing=listing,
+            )
+        except FileNotFoundError as exc:
+            # Expected, e.g. before the day's extract is published: a message, not a traceback.
+            log.error("%s", exc)
+            raise SystemExit(1) from None
 
 
 if __name__ == "__main__":

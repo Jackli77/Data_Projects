@@ -1,0 +1,41 @@
+table Enterprise
+
+	column 'Enterprise Key'
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: Enterprise Key
+
+	column 'Enterprise Number'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Enterprise Number
+
+	column Name
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Name
+
+	column 'Enterprise Type NL'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Enterprise Type NL
+
+	column 'Enterprise Type FR'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Enterprise Type FR
+
+	column Status
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Status
+
+	partition Enterprise = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database(Server, Database),
+				    Data = Source{[Schema = "powerbi", Item = "Enterprise"]}[Data]
+				in
+				    Data

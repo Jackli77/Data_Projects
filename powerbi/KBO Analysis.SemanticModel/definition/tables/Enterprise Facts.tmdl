@@ -1,0 +1,120 @@
+table 'Enterprise Facts'
+
+	/// Number of active enterprises
+	measure Enterprises = SUM ( 'Enterprise Facts'[Enterprise Count] )
+		formatString: #,0
+
+	/// Enterprises with a published e-mail address
+	measure 'Enterprises with Email' = SUM ( 'Enterprise Facts'[Has Email] )
+		formatString: #,0
+
+	/// Share of enterprises with an e-mail address
+	measure 'Email Coverage %' = DIVIDE ( [Enterprises with Email], [Enterprises] )
+		formatString: 0.0%
+
+	/// Share of enterprises with a phone number
+	measure 'Phone Coverage %' = DIVIDE ( SUM ( 'Enterprise Facts'[Has Phone] ), [Enterprises] )
+		formatString: 0.0%
+
+	/// Share of enterprises with a website
+	measure 'Website Coverage %' = DIVIDE ( SUM ( 'Enterprise Facts'[Has Website] ), [Enterprises] )
+		formatString: 0.0%
+
+	/// Average age at the snapshot date. Not additive: an average, never a sum
+	measure 'Average Age (years)' = AVERAGE ( 'Enterprise Facts'[Age Years] )
+		formatString: 0.0
+
+	/// Establishment units per enterprise
+	measure 'Establishments per Enterprise' = DIVIDE ( SUM ( 'Enterprise Facts'[Establishment Count] ), [Enterprises] )
+		formatString: 0.00
+
+	/// Share of what is currently shown, slicers and filters included
+	measure 'Share of Enterprises %' = DIVIDE ( [Enterprises], CALCULATE ( [Enterprises], ALLSELECTED () ) )
+		formatString: 0.0%
+
+	column 'Enterprise Key'
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: Enterprise Key
+
+	column 'Date Key'
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: Date Key
+
+	column 'Geography Key'
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: Geography Key
+
+	column 'Activity Key'
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: Activity Key
+
+	column 'Juridical Form Key'
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: Juridical Form Key
+
+	column 'Juridical Situation Key'
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: Juridical Situation Key
+
+	column 'Enterprise Count'
+		dataType: int64
+		formatString: #,0
+		isHidden
+		summarizeBy: none
+		sourceColumn: Enterprise Count
+
+	column 'Establishment Count'
+		dataType: int64
+		formatString: #,0
+		isHidden
+		summarizeBy: none
+		sourceColumn: Establishment Count
+
+	column 'Has Email'
+		dataType: int64
+		formatString: 0
+		isHidden
+		summarizeBy: none
+		sourceColumn: Has Email
+
+	column 'Has Phone'
+		dataType: int64
+		formatString: 0
+		isHidden
+		summarizeBy: none
+		sourceColumn: Has Phone
+
+	column 'Has Website'
+		dataType: int64
+		formatString: 0
+		isHidden
+		summarizeBy: none
+		sourceColumn: Has Website
+
+	column 'Age Years'
+		dataType: int64
+		formatString: 0
+		isHidden
+		summarizeBy: none
+		sourceColumn: Age Years
+
+	partition 'Enterprise Facts' = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database(Server, Database),
+				    Data = Source{[Schema = "powerbi", Item = "Enterprise Facts"]}[Data]
+				in
+				    Data

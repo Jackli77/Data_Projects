@@ -1,0 +1,172 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.14.0/schema.json",
+  "name": "6ab73fea804f5fcb97e6",
+  "position": {
+    "x": 20,
+    "y": 76,
+    "z": 1000,
+    "width": 1240,
+    "height": 330,
+    "tabOrder": 1000
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Load Runs"
+                    }
+                  },
+                  "Property": "Run"
+                }
+              },
+              "queryRef": "Load Runs.Run",
+              "nativeQueryRef": "Run"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Load Runs"
+                    }
+                  },
+                  "Property": "Archive"
+                }
+              },
+              "queryRef": "Load Runs.Archive",
+              "nativeQueryRef": "Archive"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Load Runs"
+                    }
+                  },
+                  "Property": "Status"
+                }
+              },
+              "queryRef": "Load Runs.Status",
+              "nativeQueryRef": "Status"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Load Runs"
+                    }
+                  },
+                  "Property": "Extract Before"
+                }
+              },
+              "queryRef": "Load Runs.Extract Before",
+              "nativeQueryRef": "Extract Before"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Load Runs"
+                    }
+                  },
+                  "Property": "Extract After"
+                }
+              },
+              "queryRef": "Load Runs.Extract After",
+              "nativeQueryRef": "Extract After"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Load Runs"
+                    }
+                  },
+                  "Property": "Rows Inserted"
+                }
+              },
+              "queryRef": "Load Runs.Rows Inserted",
+              "nativeQueryRef": "Rows Inserted"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Load Runs"
+                    }
+                  },
+                  "Property": "Rows Deleted"
+                }
+              },
+              "queryRef": "Load Runs.Rows Deleted",
+              "nativeQueryRef": "Rows Deleted"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Load Runs"
+                    }
+                  },
+                  "Property": "Duration Seconds"
+                }
+              },
+              "queryRef": "Load Runs.Duration Seconds",
+              "nativeQueryRef": "Duration Seconds"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Load Runs"
+                    }
+                  },
+                  "Property": "Error"
+                }
+              },
+              "queryRef": "Load Runs.Error",
+              "nativeQueryRef": "Error"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Archive loads'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

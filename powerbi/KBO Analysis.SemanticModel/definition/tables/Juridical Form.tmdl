@@ -1,0 +1,31 @@
+table 'Juridical Form'
+
+	column 'Juridical Form Key'
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: Juridical Form Key
+
+	column 'Juridical Form Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Juridical Form Code
+
+	column 'Juridical Form NL'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Juridical Form NL
+
+	column 'Juridical Form FR'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Juridical Form FR
+
+	partition 'Juridical Form' = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database(Server, Database),
+				    Data = Source{[Schema = "powerbi", Item = "Juridical Form"]}[Data]
+				in
+				    Data

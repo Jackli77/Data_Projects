@@ -1,0 +1,120 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.14.0/schema.json",
+  "name": "14b934d1db1758769316",
+  "position": {
+    "x": 650,
+    "y": 448,
+    "z": 9000,
+    "width": 610,
+    "height": 264,
+    "tabOrder": 9000
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Juridical Form"
+                    }
+                  },
+                  "Property": "Juridical Form NL"
+                }
+              },
+              "queryRef": "Juridical Form.Juridical Form NL",
+              "nativeQueryRef": "Juridical Form NL"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Enterprise Facts"
+                    }
+                  },
+                  "Property": "Enterprises"
+                }
+              },
+              "queryRef": "Enterprise Facts.Enterprises",
+              "nativeQueryRef": "Enterprises"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Enterprise Facts"
+                    }
+                  },
+                  "Property": "Share of Enterprises %"
+                }
+              },
+              "queryRef": "Enterprise Facts.Share of Enterprises %",
+              "nativeQueryRef": "Share of Enterprises %"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Enterprise Facts"
+                    }
+                  },
+                  "Property": "Average Age (years)"
+                }
+              },
+              "queryRef": "Enterprise Facts.Average Age (years)",
+              "nativeQueryRef": "Average Age (years)"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Measure": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "Enterprise Facts"
+                  }
+                },
+                "Property": "Enterprises"
+              }
+            },
+            "direction": "Descending"
+          }
+        ],
+        "isDefaultSort": false
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Juridical forms'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

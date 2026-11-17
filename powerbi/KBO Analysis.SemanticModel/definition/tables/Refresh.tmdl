@@ -1,0 +1,31 @@
+table Refresh
+
+	/// The extract the report shows, for traceability
+	measure 'Data As Of' = "KBO extract " & MAX ( 'Refresh'[Extract Number] ) & " of " & FORMAT ( MAX ( 'Refresh'[Snapshot Date] ), "dd/mm/yyyy" )
+
+	column 'Extract Number'
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Extract Number
+
+	column 'Snapshot Date'
+		dataType: dateTime
+		formatString: dd/mm/yyyy
+		summarizeBy: none
+		sourceColumn: Snapshot Date
+
+	column 'Refreshed At'
+		dataType: dateTime
+		formatString: dd/mm/yyyy hh:nn
+		summarizeBy: none
+		sourceColumn: Refreshed At
+
+	partition Refresh = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database(Server, Database),
+				    Data = Source{[Schema = "powerbi", Item = "Refresh"]}[Data]
+				in
+				    Data

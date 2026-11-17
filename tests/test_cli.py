@@ -102,6 +102,16 @@ def test_invalid_command_line_is_rejected_before_anything_runs(args, message, lo
     assert loads == []
 
 
+def test_unpublished_archive_ends_with_an_error_not_a_traceback(portal, loads, tmp_path):
+    portal.publish(U541)
+
+    with pytest.raises(SystemExit) as exit_info:
+        kbo(tmp_path, "--date", "2026-11-12")
+
+    assert exit_info.value.code == 1
+    assert loads == []
+
+
 def test_end_date_before_start_date_is_rejected(loads, tmp_path):
     with pytest.raises(ValueError, match="cannot be earlier"):
         kbo(tmp_path, "--date", "2026-11-12", "--end-date", "2026-11-11")

@@ -1,0 +1,104 @@
+table Activity
+
+	column 'Activity Key'
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: Activity Key
+
+	column 'NACE Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: NACE Code
+
+	column 'Activity NL'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Activity NL
+
+	column 'Activity FR'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Activity FR
+
+	column 'Class Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Class Code
+
+	column 'Class NL'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Class NL
+
+	column 'Class FR'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Class FR
+
+	column 'Group Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Group Code
+
+	column 'Group NL'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Group NL
+
+	column 'Group FR'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Group FR
+
+	column 'Division Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Division Code
+
+	column 'Division NL'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Division NL
+
+	column 'Division FR'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Division FR
+
+	hierarchy 'NACE NL'
+
+		level 'Division NL'
+			column: 'Division NL'
+
+		level 'Group NL'
+			column: 'Group NL'
+
+		level 'Class NL'
+			column: 'Class NL'
+
+		level 'Activity NL'
+			column: 'Activity NL'
+
+	hierarchy 'NACE FR'
+
+		level 'Division FR'
+			column: 'Division FR'
+
+		level 'Group FR'
+			column: 'Group FR'
+
+		level 'Class FR'
+			column: 'Class FR'
+
+		level 'Activity FR'
+			column: 'Activity FR'
+
+	partition Activity = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database(Server, Database),
+				    Data = Source{[Schema = "powerbi", Item = "Activity"]}[Data]
+				in
+				    Data

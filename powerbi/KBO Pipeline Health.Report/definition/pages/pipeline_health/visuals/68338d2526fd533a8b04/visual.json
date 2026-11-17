@@ -1,0 +1,110 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.14.0/schema.json",
+  "name": "68338d2526fd533a8b04",
+  "position": {
+    "x": 20,
+    "y": 182,
+    "z": 7000,
+    "width": 615,
+    "height": 260,
+    "tabOrder": 7000
+  },
+  "visual": {
+    "visualType": "clusteredColumnChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Load Runs"
+                    }
+                  },
+                  "Property": "Run"
+                }
+              },
+              "queryRef": "Load Runs.Run",
+              "nativeQueryRef": "Run"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Load Runs"
+                    }
+                  },
+                  "Property": "Rows Inserted (updates)"
+                }
+              },
+              "queryRef": "Load Runs.Rows Inserted (updates)",
+              "nativeQueryRef": "Rows Inserted (updates)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Load Runs"
+                    }
+                  },
+                  "Property": "Rows Deleted (updates)"
+                }
+              },
+              "queryRef": "Load Runs.Rows Deleted (updates)",
+              "nativeQueryRef": "Rows Deleted (updates)"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "Load Runs"
+                  }
+                },
+                "Property": "Run"
+              }
+            },
+            "direction": "Ascending"
+          }
+        ],
+        "isDefaultSort": false
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Rows inserted and deleted per update'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

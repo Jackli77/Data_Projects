@@ -1,0 +1,67 @@
+table Geography
+
+	column 'Geography Key'
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: Geography Key
+
+	column Zipcode
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Zipcode
+
+	column 'Municipality NL'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Municipality NL
+
+	column 'Municipality FR'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Municipality FR
+
+	column 'Country NL'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Country NL
+
+	column 'Country FR'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Country FR
+
+	column Province
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Province
+
+	column Region
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Region
+
+	column 'Is Belgium'
+		dataType: boolean
+		summarizeBy: none
+		sourceColumn: Is Belgium
+
+	hierarchy Location
+
+		level Region
+			column: Region
+
+		level Province
+			column: Province
+
+		level 'Municipality NL'
+			column: 'Municipality NL'
+
+	partition Geography = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database(Server, Database),
+				    Data = Source{[Schema = "powerbi", Item = "Geography"]}[Data]
+				in
+				    Data

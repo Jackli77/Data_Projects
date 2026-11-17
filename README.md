@@ -30,6 +30,10 @@ POSTGRES_PORT=5432
 POSTGRES_DB=kbo
 POSTGRES_USER=root
 POSTGRES_PASSWORD=root
+
+# Optional read-only login for Power BI, created by kbo-warehouse
+POWERBI_USER=powerbi_reader
+POWERBI_PASSWORD=choose_a_password
 ```
 
 Variables already set in the real environment take precedence over `.env`.
@@ -130,6 +134,8 @@ No test contacts the KBO portal: a fake portal stands in for it.
 | `tests/test_load_rules.py` | Update ordering rule, archive name vs. metadata, table columns matching the CSV headers | nothing |
 | `tests/test_load_db.py` | Full load, Update deltas, refused updates and rollback, recovery after a partial failure, run history | PostgreSQL |
 | `tests/test_warehouse_db.py` | The star schema: fact grain, dimensions, unknown members, stable keys, refresh log | PostgreSQL |
+| `tests/test_powerbi_db.py` | The Power BI views (business and monitoring, quality checks) and the read-only login | PostgreSQL |
+| `tests/test_powerbi_project.py` | Both Power BI projects only use fields of their model, the analysis relationships, and each model matches the views | nothing (model vs. views: PostgreSQL) |
 
 `tests/builders.py` writes the small archives the tests load, and `tests/conftest.py` holds
 the fake portal and the throwaway database.
@@ -208,7 +214,26 @@ situation, enterprise). Run it after loading archives; a refresh takes about two
 full dataset and is recorded in `dwh.etl_batch`.
 
 The model, the design choices and example queries are documented in
-[docs/datawarehouse.md](docs/datawarehouse.md) (in French).
+[docs/data-warehouse.md](docs/data-warehouse.md).
+
+### Power BI
+
+`kbo-warehouse` also creates the `powerbi` schema: one view per warehouse table, with
+business column names (`"Enterprise Facts"`, `"Region"`, ...), and monitoring views (`"Load Runs"`,
+`"Warehouse Refreshes"`, `"Table Row Counts"`, `"Quality Checks"`). When `POWERBI_PASSWORD` is set
+it creates the `POWERBI_USER` login (default `powerbi_reader`), which can read those views and
+nothing else.
+
+Two Power BI projects, each ready to open and Refresh:
+
+- [powerbi/KBO Analysis.pbip](powerbi/KBO%20Analysis.pbip): the star schema as a finished model
+  (relationships, measures, hierarchies) with pages on enterprises, regions, activities and
+  contact coverage.
+- [powerbi/KBO Pipeline Health.pbip](powerbi/KBO%20Pipeline%20Health.pbip): shows the pipeline
+  works (quality checks, loads, warehouse refreshes, row counts).
+- [docs/powerbi.md](docs/powerbi.md) covers connecting, how the projects are built, and both reports.
+
+In Docker: `docker compose run --rm --entrypoint kbo-warehouse kbo`.
 
 ## Logs and run history
 

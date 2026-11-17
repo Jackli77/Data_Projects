@@ -1,0 +1,39 @@
+relationship c43e619d-2714-5435-9cfc-95b060b57549
+	fromColumn: 'Enterprise Facts'.'Enterprise Key'
+	toColumn: Enterprise.'Enterprise Key'
+
+relationship 439a0da6-eaea-5cba-8092-282840da6dd6
+	fromColumn: 'Enterprise Facts'.'Date Key'
+	toColumn: Date.'Date Key'
+
+relationship 58fe212d-54f4-54ec-92f8-e3895e709029
+	fromColumn: 'Enterprise Facts'.'Geography Key'
+	toColumn: Geography.'Geography Key'
+
+relationship 9c2b3ede-ecb5-53b5-a3f9-a3d01d805386
+	fromColumn: 'Enterprise Facts'.'Activity Key'
+	toColumn: Activity.'Activity Key'
+
+relationship 27acdddc-c45a-59f4-8492-5a08f630f9fd
+	fromColumn: 'Enterprise Facts'.'Juridical Form Key'
+	toColumn: 'Juridical Form'.'Juridical Form Key'
+
+relationship 31fea5c6-3638-5c20-9ce4-bf2ec9716bd0
+	fromColumn: 'Enterprise Facts'.'Juridical Situation Key'
+	toColumn: 'Juridical Situation'.'Juridical Situation Key'
+
+relationship ec5d8689-bf6a-58b4-851e-439c7b288678
+	fromColumn: 'Establishment Facts'.'Enterprise Key'
+	toColumn: Enterprise.'Enterprise Key'
+
+relationship 24d5428b-df79-57af-82ae-349debae73d2
+	fromColumn: 'Establishment Facts'.'Date Key'
+	toColumn: Date.'Date Key'
+
+relationship b0619e06-e778-5505-885c-3e8335430a58
+	fromColumn: 'Establishment Facts'.'Geography Key'
+	toColumn: Geography.'Geography Key'
+
+relationship bcdf2b66-e23c-5127-8fac-64319526639b
+	fromColumn: 'Establishment Facts'.'Activity Key'
+	toColumn: Activity.'Activity Key'

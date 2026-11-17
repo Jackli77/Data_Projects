@@ -1,0 +1,116 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.14.0/schema.json",
+  "name": "4aba9e4f2c9256aca0ee",
+  "position": {
+    "x": 20,
+    "y": 452,
+    "z": 9000,
+    "width": 615,
+    "height": 260,
+    "tabOrder": 9000
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Quality Checks"
+                    }
+                  },
+                  "Property": "Category"
+                }
+              },
+              "queryRef": "Quality Checks.Category",
+              "nativeQueryRef": "Category"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Quality Checks"
+                    }
+                  },
+                  "Property": "Check"
+                }
+              },
+              "queryRef": "Quality Checks.Check",
+              "nativeQueryRef": "Check"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Quality Checks"
+                    }
+                  },
+                  "Property": "Severity"
+                }
+              },
+              "queryRef": "Quality Checks.Severity",
+              "nativeQueryRef": "Severity"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Quality Checks"
+                    }
+                  },
+                  "Property": "Failing Rows"
+                }
+              },
+              "queryRef": "Quality Checks.Failing Rows",
+              "nativeQueryRef": "Failing Rows"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Quality Checks"
+                    }
+                  },
+                  "Property": "Status"
+                }
+              },
+              "queryRef": "Quality Checks.Status",
+              "nativeQueryRef": "Status"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Quality checks'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}
