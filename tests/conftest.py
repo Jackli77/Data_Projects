@@ -100,7 +100,7 @@ class Database:
         self._conn = conn
 
     def reset(self) -> None:
-        self._conn.execute("DROP SCHEMA IF EXISTS kbo, reporting CASCADE")
+        self._conn.execute("DROP SCHEMA IF EXISTS kbo, reporting, dwh CASCADE")
 
     def execute(self, sql: str) -> None:
         self._conn.execute(sql)

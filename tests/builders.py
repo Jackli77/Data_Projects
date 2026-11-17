@@ -81,7 +81,7 @@ def to_csv(columns: list[str], rows: Rows) -> str:
 
 
 def meta_csv(extract_type: str, number: int) -> str:
-    rows = {"ExtractType": extract_type, "ExtractNumber": str(number), "Version": "1.0.0"}
+    rows = {"SnapshotDate": "09-11-2026", "ExtractType": extract_type, "ExtractNumber": str(number), "Version": "1.0.0"}
     return to_csv(HEADERS["meta"], [{"Variable": k, "Value": v} for k, v in rows.items()])
 
 
@@ -92,9 +92,15 @@ def _write(path: Path, files: dict[str, str]) -> Path:
     return path
 
 
-def write_full(data_dir: Path, number: int = FULL_NUMBER, day: date = FULL_DATE) -> Path:
-    """Writes a Full archive containing SEED."""
-    files = {f"{table}.csv": to_csv(HEADERS[table], rows) for table, rows in SEED.items()}
+def write_full(
+    data_dir: Path,
+    number: int = FULL_NUMBER,
+    day: date = FULL_DATE,
+    tables: dict[str, Rows] | None = None,
+) -> Path:
+    """Writes a Full archive containing SEED, or `tables` for the tables it names."""
+    content = {**SEED, **(tables or {})}
+    files = {f"{table}.csv": to_csv(HEADERS[table], rows) for table, rows in content.items()}
     files["meta.csv"] = meta_csv("full", number)
     return _write(Path(data_dir) / Archive(number, day, "Full").filename, files)
 

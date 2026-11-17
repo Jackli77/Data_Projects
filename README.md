@@ -129,6 +129,7 @@ No test contacts the KBO portal: a fake portal stands in for it.
 | `tests/test_transformation.py` | The transform step: column names, each cleaning rule, duplicate removal | nothing |
 | `tests/test_load_rules.py` | Update ordering rule, archive name vs. metadata, table columns matching the CSV headers | nothing |
 | `tests/test_load_db.py` | Full load, Update deltas, refused updates and rollback, recovery after a partial failure, run history | PostgreSQL |
+| `tests/test_warehouse_db.py` | The star schema: fact grain, dimensions, unknown members, stable keys, refresh log | PostgreSQL |
 
 `tests/builders.py` writes the small archives the tests load, and `tests/conftest.py` holds
 the fake portal and the throwaway database.
@@ -191,6 +192,23 @@ Full load time compared with copying the files unchanged.
 
 The rules live in the tables at the top of `kbo/transformation.py` (`TEXT_COLUMNS`,
 `PLACEHOLDER_COLUMNS`, `LOWERCASE_CONTACT_TYPES`, `DEDUPLICATED_TABLES`).
+
+## Data warehouse
+
+`kbo/warehouse.py` builds a star schema in the `dwh` schema on top of the cleaned `kbo` tables,
+for reporting tools such as Power BI:
+
+```bash
+kbo-warehouse
+```
+
+It has two fact tables (`fact_enterprise`, `fact_establishment`) and six dimensions (date,
+geography with province and region, NACE activity with its hierarchy, juridical form, juridical
+situation, enterprise). Run it after loading archives; a refresh takes about two minutes on the
+full dataset and is recorded in `dwh.etl_batch`.
+
+The model, the design choices and example queries are documented in
+[docs/datawarehouse.md](docs/datawarehouse.md) (in French).
 
 ## Logs and run history
 

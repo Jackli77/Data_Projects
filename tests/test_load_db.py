@@ -56,7 +56,7 @@ def test_full_load_fills_every_table(data_dir, db):
         "denomination": 2,
         "enterprise": 2,
         "establishment": 1,
-        "meta": 3,
+        "meta": 4,
     }
     assert db.extract_number == FULL_NUMBER
     # dates arrive as DD-MM-YYYY

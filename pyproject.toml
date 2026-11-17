@@ -21,6 +21,7 @@ debug = ["pandas>=2"]
 
 [project.scripts]
 kbo = "kbo.main:main"
+kbo-warehouse = "kbo.warehouse:main"
 
 [tool.setuptools.packages.find]
 include = ["kbo*"]
